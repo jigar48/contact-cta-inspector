@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width"
+  /><title>Contact CTA Inspector demo</title
+  ><style>
+    body {
+      font: 16px/1.7 system-ui;
+      max-width: 750px;
+      margin: 50px auto;
+      padding: 20px;
+      color: #183239;
+    }
+    li {
+      margin: 12px;
+    }
+    a {
+      color: #126754;
+    }
+    section {
+      padding: 10px 24px;
+      background: #f4f8f7;
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px;
+    }
+  </style>
+  <h1>Contact link test bench</h1>
+  <p>
+    Synthetic examples only. Open the extension and click Scan. Do not call or
+    email these sample destinations.
+  </p>
+  <section>
+    <h2>Expected: no format finding</h2>
+    <ul>
+      <li>
+        <a href="https://wa.me/442079460123?text=Demo"
+          >WhatsApp: international digits</a
+        >
+      </li>
+      <li>
+        <a href="tel:+44-20-7946-0123">Telephone: international separators</a>
+      </li>
+      <li>
+        <a href="mailto:hello@example.com,qa@example.org?subject=Demo"
+          >Email: multiple recipients</a
+        >
+      </li>
+      <li><a href="#details">Real page fragment</a></li>
+    </ul>
+  </section>
+  <section>
+    <h2>Expected: errors</h2>
+    <ul>
+      <li><a href="https://wa.me/+44-123">WhatsApp: invalid punctuation</a></li>
+      <li><a href="tel:call-me">Telephone: invalid destination</a></li>
+      <li>
+        <a
+          href="mailto:missing-at?body=PRIVATE_DEMO_MESSAGE&token=PRIVATE_DEMO_TOKEN"
+          >Email: malformed recipient, redacted query</a
+        >
+      </li>
+      <li><a href="mailto:%ZZ">Email: malformed encoding</a></li>
+    </ul>
+  </section>
+  <section>
+    <h2>Expected: warnings and information</h2>
+    <ul>
+      <li><a href="#">Placeholder</a></li>
+      <li><a href="">Empty destination</a></li>
+      <li><a href="javascript:void(0)">Script action, manually verify</a></li>
+      <li><a href="tel:112">Regional service number</a></li>
+      <li><a href="mailto:?subject=Hello">Choose your own recipient</a></li>
+      <li>
+        <button aria-label="Contact support">
+          Contact support (no linked destination)
+        </button>
+      </li>
+      <li><a href="#">Duplicate placeholder</a></li>
+      <li><a href="#" aria-label="Contact us">Contact us (placeholder)</a></li>
+      <li>
+        <a href="javascript:void(0)" aria-label="Email us"
+          >Email us (scripted contact action)</a
+        >
+      </li>
+    </ul>
+  </section>
+  <p id="details">
+    Frames and shadow roots are excluded. Re-scan after dynamic changes.
+  </p>
+</html>

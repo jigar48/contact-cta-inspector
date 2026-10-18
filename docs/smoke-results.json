@@ -1,0 +1,74 @@
+{
+  "chrome": "Chrome/155.0.8059.82",
+  "extensionVersion": "1.1.0",
+  "fixtureElements": 17,
+  "findingGroups": 12,
+  "contactGroups": 9,
+  "generalGroups": 3,
+  "dimensions": {
+    "nativeInitial": {
+      "width": 416,
+      "height": 220,
+      "root": 416,
+      "body": 416
+    },
+    "nativeScanned": {
+      "width": 416,
+      "height": 510,
+      "cards": 9,
+      "findings": {
+        "x": 0,
+        "y": 244.3125,
+        "width": 416,
+        "height": 191.1875,
+        "top": 244.3125,
+        "right": 416,
+        "bottom": 435.5,
+        "left": 0
+      }
+    },
+    "nativeLayout": {
+      "heading": 20,
+      "footer": 510,
+      "app": 510,
+      "button": 30
+    },
+    "narrow": {
+      "app": 320,
+      "overflow": false
+    },
+    "zoomLayout": {
+      "width": 208,
+      "app": 208,
+      "overflow": false
+    },
+    "zoomFooter": {
+      "scrollable": true,
+      "copyVisible": true
+    }
+  },
+  "copyStatus": "Full redacted report copied.",
+  "checks": [
+    "unpacked extension load via Chrome CDP",
+    "packaged scanner executed on synthetic DOM",
+    "query redaction",
+    "real popup render",
+    "unsupported-context error",
+    "action activeTab grant and real scripting scan through popup controller",
+    "popup cards and filtering",
+    "real highlight injection and cleanup without changing fixture content",
+    "native action popup dimensions, one-line title and visible report/footer",
+    "keyboard focus order and findings scrolling",
+    "320px viewport and long-URL overflow",
+    "real Chrome 200% tab zoom",
+    "contact-first view, separate general observations and scoped counts",
+    "synthetic 367-element navigation-noise acceptance scenario: 0 contact groups, 3 general groups / 82 elements"
+  ],
+  "unverified": [
+    "manual toolbar popup interaction",
+    "manual screen-reader and keyboard usability",
+    "native-popup zoom (200% tested in extension tab only)",
+    "Chrome Web Store review",
+    "other OS/Node CI jobs"
+  ]
+}
