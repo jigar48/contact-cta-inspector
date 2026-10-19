@@ -56,3 +56,11 @@ Actual automated Chrome captures are in `docs/screenshots`: `popup-native-initia
 ## Hire Me
 
 Built and maintained by **Jigar Prajapati**. Available for browser extensions, practical developer tools and privacy-conscious web engineering. Discuss a project through [GitHub](https://github.com/jigar48) or [LinkedIn](https://www.linkedin.com/in/buildaiwith-jigar-prajapati/).
+
+### Support This Project
+
+If this independent open-source project is useful to you, you can support its ongoing maintenance.
+
+[![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/buildwithjigar)
+
+Support is optional; issue reports and feedback are also welcome.
