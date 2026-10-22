@@ -302,3 +302,113 @@ it("presents a general-only scan without implying contact errors", async () => {
     "0 of 0 groups · 0 elements",
   );
 });
+it("copies all JSON sections independently of every UI filter and supports a focused fallback", async () => {
+  await mount([
+    finding,
+    { ...finding, scope: "general", intent: "none", category: "placeholder" },
+  ]);
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, "clipboard", {
+    value: { writeText },
+    configurable: true,
+  });
+  document.getElementById("scan")!.click();
+  await vi.waitFor(() =>
+    expect(document.querySelectorAll("article")).toHaveLength(1),
+  );
+  for (const [id, value] of [
+    ["category", "telephone"],
+    ["severity", "info"],
+    ["view", "general"],
+  ]) {
+    const select = document.getElementById(id) as HTMLSelectElement;
+    select.value = value;
+    select.dispatchEvent(new Event("change"));
+  }
+  document.getElementById("copy-json")!.click();
+  await vi.waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+  const text = writeText.mock.calls[0][0];
+  expect(JSON.parse(text).contactFindings).toHaveLength(1);
+  expect(JSON.parse(text).generalObservations).toHaveLength(1);
+  writeText.mockRejectedValue(new Error("denied"));
+  document.getElementById("copy-json")!.click();
+  await vi.waitFor(() =>
+    expect(document.getElementById("fallback")?.hidden).toBe(false),
+  );
+  const area = document.getElementById("report") as HTMLTextAreaElement;
+  expect(document.activeElement).toBe(area);
+  expect(area.getAttribute("aria-label")).toBe("Redacted JSON report");
+  expect(area.value).toBe(text);
+  expect(area.selectionEnd).toBe(text.length);
+  writeText.mockResolvedValue(undefined);
+  document.getElementById("copy-json")!.click();
+  await vi.waitFor(() =>
+    expect(document.getElementById("fallback")?.hidden).toBe(true),
+  );
+  document.getElementById("scan")!.click();
+  expect(area.value).toBe("");
+});
+it("exports empty JSON when the clipboard API is missing", async () => {
+  await mount();
+  Object.defineProperty(navigator, "clipboard", {
+    value: undefined,
+    configurable: true,
+  });
+  document.getElementById("scan")!.click();
+  await vi.waitFor(() =>
+    expect(document.getElementById("results")?.hidden).toBe(false),
+  );
+  document.getElementById("copy-json")!.click();
+  await vi.waitFor(() =>
+    expect(document.getElementById("fallback")?.hidden).toBe(false),
+  );
+  expect(
+    JSON.parse((document.getElementById("report") as HTMLTextAreaElement).value)
+      .contactFindings,
+  ).toEqual([]);
+});
+it("reports oversized export failure without writing partial JSON", async () => {
+  await mount([{ ...finding, explanation: "x".repeat(4097) }]);
+  const writeText = vi.fn();
+  Object.defineProperty(navigator, "clipboard", {
+    value: { writeText },
+    configurable: true,
+  });
+  document.getElementById("scan")!.click();
+  await vi.waitFor(() =>
+    expect(document.querySelectorAll("article")).toHaveLength(1),
+  );
+  document.getElementById("copy-json")!.click();
+  expect(document.getElementById("status")?.textContent).toContain(
+    "invalid or oversized",
+  );
+  expect(writeText).not.toHaveBeenCalled();
+});
+it("does not restore an old fallback after a re-scan", async () => {
+  await mount([finding]);
+  let rejectCopy: (reason: Error) => void = () => {};
+  const writeText = vi.fn(
+    () =>
+      new Promise<void>((_resolve, reject) => {
+        rejectCopy = reject;
+      }),
+  );
+  Object.defineProperty(navigator, "clipboard", {
+    value: { writeText },
+    configurable: true,
+  });
+  document.getElementById("scan")!.click();
+  await vi.waitFor(() =>
+    expect(document.querySelectorAll("article")).toHaveLength(1),
+  );
+  document.getElementById("copy-json")!.click();
+  document.getElementById("scan")!.click();
+  rejectCopy(new Error("late denial"));
+  await vi.waitFor(() =>
+    expect(document.getElementById("results")?.hidden).toBe(false),
+  );
+  expect(document.getElementById("fallback")?.hidden).toBe(true);
+  expect((document.getElementById("report") as HTMLTextAreaElement).value).toBe(
+    "",
+  );
+});

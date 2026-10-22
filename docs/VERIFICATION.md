@@ -1,3 +1,63 @@
+# Structured JSON export — local verification
+
+Date: 2026-10-22. Windows, Node v24.19.0, npm 11.17.0, Chrome
+155.0.8059.85. npm used a temporary tool shim outside the repository because only
+Node was initially on PATH; no machine-wide installation was changed.
+
+- `npm ci`: pass, lockfile unchanged, 175 packages installed; zero known vulnerabilities.
+- `npm run check`: pass (strict typecheck, 128 tests in four files, lint,
+  formatting, production build and ZIP packaging). All 95 existing tests remain;
+  33 regression cases were added.
+- `npm run package:check`, `npm run source:review`,
+  `npm audit --audit-level=moderate`, `npm run reproducibility`: pass.
+- `npm run smoke`: pass using the packaged extension in real installed Chrome.
+  Native action popup, scan/filter/highlight, real text/JSON clipboard writes,
+  forced-denial JSON fallback, selected textarea focus, 320px layout and 200%
+  extension-tab zoom are covered. JSON includes all nine contact and three general
+  groups while a category filter is active. Both copy actions remain reachable.
+  Machine-readable results and refreshed synthetic screenshots accompany this file.
+
+Artifact: `release/contact-cta-inspector-1.1.0.zip`, 18,029 bytes, SHA-256
+`9cd21931ee3bffed0a6dac2a2568da5218deb50206f223600cee041143f662af`.
+Version metadata, runtime dependencies and manifest permissions are unchanged.
+
+## Change review
+
+The exporter builds an explicit, fixed-order allowlist of JSON fields, excludes
+labels and internal highlight metadata, normalizes page origins, re-redacts
+bounded destinations and rejects invalid enums, counts and field sizes. Arrays
+retain scanner order. Empty sections serialize as arrays. No dynamic HTML or
+object merging from scan data is introduced; arbitrary keys including
+`__proto__` are not copied. Reports over the output budget fail visibly rather
+than being clipped or silently dropping groups. Work and memory are bounded by
+250 groups, 4,096 code units per input string and a final serialized-size check.
+The source scanner's normal reports fit comfortably within the output limit.
+
+Two verified issues were corrected: browser-normalized credential URLs without
+ordinary double slashes could retain credentials, and delayed clipboard callbacks
+could restore stale fallback data after re-scan. Credential hardening applies
+before findings leave the page and preserves the existing standard-URL output.
+Regression cases exercise both scanner integration and export. Copy attempts now
+invalidate earlier callbacks. Clipboard absence/rejection uses text-only rendering,
+an expanded labelled read-only textarea, focus and selection. Re-scan and a new
+copy attempt clear the fallback.
+
+No unresolved blocking security or correctness issue was found. No added runtime
+network access, telemetry, permissions, storage or dependencies. Common-pattern
+source scanning and dependency auditing cannot prove absence of all vulnerabilities.
+Review retained contact identifiers and paths before sharing. Findings do not
+prove a destination is broken or delivery works.
+
+Manual screen-reader use, human toolbar interaction, native-popup zoom and browser
+store review remain unverified. CI platform results must be checked in the hosted
+run; local Chrome evidence alone does not establish them. See
+[JSON export](JSON-EXPORT.md) for the contract and limitations.
+
+---
+
+The following is the historical 2026-10-18 verification record. Its package hash,
+test counts and pre-publication statements describe that earlier snapshot only.
+
 # Contact CTA Inspector 1.1.0 — local verification
 
 Date: 2026-10-18. Environment: Windows, Node v24.19.0, npm 11.6.2, installed Chrome 155.0.8059.82. npm was invoked through a temporary local tool shim because the host initially supplied Node without npm on PATH; no machine-wide installation was changed.

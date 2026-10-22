@@ -1,5 +1,5 @@
 {
-  "chrome": "Chrome/155.0.8059.82",
+  "chrome": "Chrome/155.0.8059.85",
   "extensionVersion": "1.1.0",
   "fixtureElements": 17,
   "findingGroups": 12,
@@ -44,15 +44,22 @@
     },
     "zoomFooter": {
       "scrollable": true,
-      "copyVisible": true
+      "copyVisible": true,
+      "jsonVisible": true
     }
   },
   "copyStatus": "Full redacted report copied.",
+  "jsonExport": {
+    "clipboard": "passed",
+    "fallback": "passed",
+    "schemaVersion": 1
+  },
   "checks": [
     "unpacked extension load via Chrome CDP",
     "packaged scanner executed on synthetic DOM",
     "query redaction",
     "real popup render",
+    "Copy JSON real clipboard success, separate unfiltered sections and focused selectable denial fallback",
     "unsupported-context error",
     "action activeTab grant and real scripting scan through popup controller",
     "popup cards and filtering",

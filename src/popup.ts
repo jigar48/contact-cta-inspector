@@ -1,4 +1,5 @@
 import "./style.css";
+import { jsonReport } from "./json-report";
 import { scanTab, highlightTab } from "./bridge";
 import { filterFindings, report, summarize } from "./report";
 import type { ScanResult, Category, FindingScope } from "./types";
@@ -19,13 +20,14 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     <div class="results-heading"><h2 id="section-title">Contact findings</h2><span id="shown"></span></div>
     <p id="limit" class="note" hidden>Scan limits reached; results are incomplete.</p>
     <div id="findings" role="region" aria-label="Contact link findings" tabindex="0"></div>
-    <div class="report-bar"><span>Severity counts = groups in this view</span><button id="copy" class="secondary" aria-label="Copy full redacted report">Copy both sections</button></div>
+    <div class="report-bar"><span>Severity counts = groups in this view</span><button id="copy" class="secondary" aria-label="Copy full redacted report">Copy both sections</button><button id="copy-json" class="secondary" aria-label="Copy JSON for both sections">Copy JSON</button></div>
     <details id="fallback" hidden><summary>Copy report manually</summary><textarea id="report" readonly aria-label="Redacted report"></textarea></details>
   </main>
   <footer><details><summary>Scope & privacy</summary><p id="scope">Top-level DOM only. All frames, including inaccessible frames, and shadow roots are not scanned.</p><p>Contact intent uses destination and bounded label/context heuristics; it can miss or misclassify controls. Placeholders and JavaScript links are not confirmed broken. Event handlers and actual contact delivery are not verified.</p><p>Queries, fragments and URL credentials are hidden. Contact addresses can remain visible. No form data is collected, no destinations are opened and no network checks are made.</p><p>By Jigar Prajapati · Results are discarded when this popup closes.</p></details></footer>`;
 const get = <T extends HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 let current: ScanResult | undefined, tabId: number | undefined;
+let copyAttempt = 0;
 const status = (message: string) => {
   get("status").textContent = message;
 };
@@ -180,6 +182,7 @@ get("scan").addEventListener("click", async () => {
   get("initial").hidden = true;
   get("fallback").hidden = true;
   get<HTMLTextAreaElement>("report").value = "";
+  copyAttempt++;
   current = undefined;
   get<HTMLSelectElement>("view").value = "contact";
   status("Inspecting accessible top-level links…");
@@ -208,17 +211,41 @@ get("scan").addEventListener("click", async () => {
 });
 for (const id of ["category", "severity", "view"])
   get(id).addEventListener("change", render);
-get("copy").addEventListener("click", async () => {
+async function copyReport(format: "text" | "json") {
   if (!current) return;
-  const text = report(current);
+  const attempt = ++copyAttempt;
+  get("fallback").hidden = true;
+  get<HTMLTextAreaElement>("report").value = "";
+  let text: string;
+  try {
+    text = format === "json" ? jsonReport(current) : report(current);
+  } catch {
+    status(
+      "JSON export unavailable: invalid or oversized scan. Re-scan the page.",
+    );
+    return;
+  }
   try {
     await navigator.clipboard.writeText(text);
-    status("Full redacted report copied.");
+    if (attempt !== copyAttempt) return;
+    status(
+      format === "json"
+        ? "JSON for both sections copied."
+        : "Full redacted report copied.",
+    );
   } catch {
+    if (attempt !== copyAttempt) return;
     get("fallback").hidden = false;
     get<HTMLDetailsElement>("fallback").open = true;
+    get<HTMLTextAreaElement>("report").setAttribute(
+      "aria-label",
+      format === "json" ? "Redacted JSON report" : "Redacted report",
+    );
     get<HTMLTextAreaElement>("report").value = text;
+    get<HTMLTextAreaElement>("report").focus();
     get<HTMLTextAreaElement>("report").select();
     status("Clipboard unavailable. Select and copy the report below.");
   }
-});
+}
+get("copy").addEventListener("click", () => void copyReport("text"));
+get("copy-json").addEventListener("click", () => void copyReport("json"));

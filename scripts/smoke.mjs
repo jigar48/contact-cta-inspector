@@ -230,6 +230,52 @@ try {
     ),
   );
   const copyStatus = await popup.locator("#status").textContent();
+  // Real clipboard write from an explicit click, while UI filters are active.
+  await popup.bringToFront();
+  await popup.evaluate(() => {
+    const write = window.navigator.clipboard.writeText.bind(
+      window.navigator.clipboard,
+    );
+    window.navigator.clipboard.writeText = async (text) => {
+      await write(text);
+      window.smokeCopiedJson = text;
+    };
+  });
+  await popup.locator("#copy-json").click();
+  await popup.waitForFunction(
+    () =>
+      document.querySelector("#status").textContent ===
+      "JSON for both sections copied.",
+  );
+  const copiedJson = await popup.evaluate(() => window.smokeCopiedJson);
+  const structured = JSON.parse(copiedJson);
+  assert.equal(structured.schemaVersion, 1);
+  assert.equal(structured.contactFindings.length, contactCount);
+  assert.equal(structured.generalObservations.length, generalCount);
+  assert(!copiedJson.includes("PRIVATE_DEMO_"));
+  // Exercise denied clipboard access deterministically in the packaged popup.
+  await popup.evaluate(() => {
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async () => {
+          throw new Error("Synthetic denial");
+        },
+      },
+    });
+  });
+  await popup.locator("#copy-json").click();
+  await popup.locator("#fallback").waitFor({ state: "visible" });
+  assert.equal(await popup.locator("#report").inputValue(), copiedJson);
+  assert.equal(await popup.evaluate(() => document.activeElement.id), "report");
+  assert.equal(
+    await popup.locator("#report").evaluate((el) => el.selectionEnd),
+    copiedJson.length,
+  );
+  await popup.evaluate(() => {
+    delete window.navigator.clipboard;
+    document.querySelector("#fallback").hidden = true;
+  });
   await popup.locator("#category").selectOption("all");
   await popup.bringToFront();
   await popup.locator("#scan").focus();
@@ -294,9 +340,17 @@ try {
     return {
       scrollable: app.scrollHeight > app.clientHeight,
       copyVisible: copy.top >= 0 && copy.bottom <= window.innerHeight,
+      jsonVisible: (() => {
+        const json = document
+          .querySelector("#copy-json")
+          .getBoundingClientRect();
+        return json.top >= 0 && json.bottom <= window.innerHeight;
+      })(),
     };
   });
-  assert(zoomFooter.scrollable && zoomFooter.copyVisible);
+  assert(
+    zoomFooter.scrollable && zoomFooter.copyVisible && zoomFooter.jsonVisible,
+  );
   await popup.evaluate(async () => {
     const tab = await chrome.tabs.getCurrent();
     await chrome.tabs.setZoom(tab.id, 1);
@@ -344,11 +398,17 @@ try {
       zoomFooter,
     },
     copyStatus,
+    jsonExport: {
+      clipboard: "passed",
+      fallback: "passed",
+      schemaVersion: structured.schemaVersion,
+    },
     checks: [
       "unpacked extension load via Chrome CDP",
       "packaged scanner executed on synthetic DOM",
       "query redaction",
       "real popup render",
+      "Copy JSON real clipboard success, separate unfiltered sections and focused selectable denial fallback",
       "unsupported-context error",
       "action activeTab grant and real scripting scan through popup controller",
       "popup cards and filtering",

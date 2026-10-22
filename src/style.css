@@ -318,6 +318,7 @@ code {
   min-height: 25px;
 }
 .report-bar {
+  flex-wrap: wrap;
   border-top: 1px solid #e2e7ea;
   padding: 7px 14px;
   display: flex;

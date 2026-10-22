@@ -200,3 +200,17 @@ describe("extension boundary", () => {
     expect(highlight(0, "t")).toBe(false);
   });
 });
+it.each([
+  "https:user:PRIVATE_PASSWORD@wa.me/0?token=PRIVATE_QUERY#PRIVATE_FRAGMENT",
+  "https:\\user:PRIVATE_PASSWORD@wa.me/0?token=PRIVATE_QUERY#PRIVATE_FRAGMENT",
+])(
+  "redacts browser-normalized credentials before findings leave the page: %s",
+  (href) => {
+    document.body.innerHTML = "<a>Contact us</a>";
+    document.querySelector("a")!.setAttribute("href", href);
+    const { result } = inspect(document, "synthetic-token");
+    expect(result.findings).toHaveLength(1);
+    expect(JSON.stringify(result.findings)).not.toContain("PRIVATE_");
+    expect(result.findings[0].link).toContain("[credentials hidden]");
+  },
+);

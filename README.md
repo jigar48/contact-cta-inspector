@@ -15,6 +15,7 @@ The popup uses a compact 416px document width, a one-line title and a 30px Scan/
 - Each View option gives group and affected-element totals. Severity counts show groups across the selected view; category/severity filters affect cards, not these view totals. The findings header gives the filtered groups and affected elements. Identical raw destinations with the same validation result are grouped separately within each view.
 - Highlight the first affected element for three seconds. This scrolls it into view; hidden or removed elements cannot be highlighted. Scroll/resize removes the overlay early.
 - **Copy both sections** includes separately counted contact findings and general observations, regardless of filters. If clipboard access fails, a selectable redacted report appears.
+- **Copy JSON** exports both sections as deterministic, versioned JSON (`schemaVersion: 1`), regardless of filters. Clipboard failure opens a focused, selectable fallback. See [JSON export schema, synthetic example and QA guidance](docs/JSON-EXPORT.md). Review retained contact addresses and paths before sharing.
 - Re-scan after the page changes. Closing the popup discards results; element references expire after five minutes or navigation.
 
 ## Scope and limitations
@@ -43,7 +44,7 @@ npm audit --audit-level=moderate
 
 `npm run dev` serves a UI development preview; Chrome APIs require the built extension. `npm run build` produces `dist` and the ZIP. `public/demo.html` is a synthetic fixture: serve the repository over localhost and open it there. It is excluded from release packaging. `npm test` runs synthetic DOM, integration, rules and popup tests. CI defines Node 22/24 on Ubuntu, Windows and macOS; configured jobs are not evidence that those remote checks have run.
 
-Architecture: `extract.ts` bounds DOM work; `intent.ts` determines contact intent; `rules.ts` validates formats without changing severity based on intent; `scan.ts` prioritizes/groups findings and associates elements; `privacy.ts` redacts; `content.ts` is bundled as an isolated injection; `bridge.ts` contains Chrome calls; `highlight.ts` manages temporary overlays; `report.ts` handles scoped counts/filters and sectioned report text; `popup.ts` renders with text nodes. Only static application markup uses innerHTML.
+Architecture: `extract.ts` bounds DOM work; `intent.ts` determines contact intent; `rules.ts` validates formats without changing severity based on intent; `scan.ts` prioritizes/groups findings and associates elements; `privacy.ts` redacts; `content.ts` is bundled as an isolated injection; `bridge.ts` contains Chrome calls; `highlight.ts` manages temporary overlays; `report.ts` handles scoped counts/filters and sectioned report text; `json-report.ts` builds bounded, allowlisted structured exports; `popup.ts` renders with text nodes. Only static application markup uses innerHTML.
 
 ## Screenshots
 
