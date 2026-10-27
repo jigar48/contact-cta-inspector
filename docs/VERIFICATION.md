@@ -1,3 +1,26 @@
+# Final integration review — 2026-10-27
+
+Initial HEAD matched approved commit `7762b6d916c1726229040288baf8039af5662cb8`
+and the working tree was clean. Fetched remote main was its direct parent.
+Final review found a conservative naming correction: nested `aria-labelledby`
+references now defer instead of approximating chained IDREF recursion and risking
+a false unnamed warning. A regression covers meaningful text on a referenced
+node that itself has an empty naming reference. URL validation is unchanged.
+
+Revalidated with `npm ci`, `npm run check` (156 tests: 28 new, 128 existing),
+`npm run smoke`, `npm run package:check`, `npm run source:review` and
+`npm audit --audit-level=moderate` (zero vulnerabilities). Before/after demo,
+text/JSON export, filters and highlighting pass in Chrome 156.0.8078.47.
+Permissions, privacy/redaction, schemaVersion 1 fields, deterministic grouping
+and finding limits remain unchanged. Closed-category-enum consumers still need
+to accept `accessible-name`. Manual assistive-technology evaluation is excluded.
+
+Corrected local ZIP: 19,036 bytes; SHA-256
+`99f2760c69701bcc72eceff408638bbd374bf9e62237b419ab19c6e179253841`.
+Hosted CI verification is reported separately in the integration result.
+
+---
+
 # Accessible-name warnings — local verification
 
 Date: 2026-10-27. Windows, Node v24.22.1, npm 12.2.1 (temporary shim outside

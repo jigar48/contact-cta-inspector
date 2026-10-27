@@ -52,6 +52,12 @@ export function confidentlyUnnamed(element: Element): boolean {
     )
       uncertain = true;
     if (node.hasAttribute("aria-labelledby")) {
+      // Do not approximate chained IDREF naming while traversing a reference.
+      // The full algorithm has recursion/context rules; defer rather than warn.
+      if (referenced) {
+        uncertain = true;
+        return "";
+      }
       const raw = node.getAttribute("aria-labelledby")!;
       const refs = raw.slice(0, 512).trim().split(/\s+/).filter(Boolean);
       if (raw.length > 512 || refs.length > 4) uncertain = true;

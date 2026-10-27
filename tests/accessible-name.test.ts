@@ -71,6 +71,13 @@ it("respects resolved empty labelledby over other naming sources", () => {
     ).result.findings[0]?.category,
   ).toBe("accessible-name");
 });
+it("defers chained labelledby references instead of losing referenced text", () => {
+  expect(
+    scan(
+      '<span id="empty"></span><span id="label" aria-labelledby="empty">Email us</span><a href="mailto:hello@example.test" aria-labelledby="label"></a>',
+    ).result.findings,
+  ).toEqual([]);
+});
 it.each([
   '<a href="mailto:hello@example.test" aria-labelledby="cycle" id="cycle"></a>',
   '<a href="mailto:hello@example.test"><svg><use href="#icon"/></svg></a>',
