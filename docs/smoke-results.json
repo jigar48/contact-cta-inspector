@@ -1,9 +1,9 @@
 {
-  "chrome": "Chrome/155.0.8059.85",
+  "chrome": "Chrome/156.0.8078.47",
   "extensionVersion": "1.1.0",
-  "fixtureElements": 17,
-  "findingGroups": 12,
-  "contactGroups": 9,
+  "fixtureElements": 19,
+  "findingGroups": 13,
+  "contactGroups": 10,
   "generalGroups": 3,
   "dimensions": {
     "nativeInitial": {
@@ -15,7 +15,7 @@
     "nativeScanned": {
       "width": 416,
       "height": 510,
-      "cards": 9,
+      "cards": 10,
       "findings": {
         "x": 0,
         "y": 244.3125,
@@ -58,6 +58,7 @@
     "unpacked extension load via Chrome CDP",
     "packaged scanner executed on synthetic DOM",
     "query redaction",
+    "missing-name fixture warning, named duplicate, SVG title, hidden ARIA reference, visually hidden text and CSS-generated content deferral",
     "real popup render",
     "Copy JSON real clipboard success, separate unfiltered sections and focused selectable denial fallback",
     "unsupported-context error",

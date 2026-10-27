@@ -1,4 +1,5 @@
-export type Category = "whatsapp" | "telephone" | "email" | "placeholder";
+export type Category =
+  "whatsapp" | "telephone" | "email" | "placeholder" | "accessible-name";
 export type Severity = "error" | "warning" | "info";
 export type FindingScope = "contact" | "general";
 export type IntentSignal = "destination" | "label-or-context" | "none";

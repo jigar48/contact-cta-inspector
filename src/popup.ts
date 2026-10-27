@@ -5,9 +5,9 @@ import { filterFindings, report, summarize } from "./report";
 import type { ScanResult, Category, FindingScope } from "./types";
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
-  <header><span class="brand-icon" aria-hidden="true">✓</span><div class="brand"><h1>Contact CTA Inspector</h1><p class="subtitle">Contact link format checks</p></div><button id="scan" class="primary">Scan page</button></header>
+  <header><span class="brand-icon" aria-hidden="true">✓</span><div class="brand"><h1>Contact CTA Inspector</h1><p class="subtitle">Contact format & name checks</p></div><button id="scan" class="primary">Scan page</button></header>
   <p id="status" role="status" aria-live="polite">Nothing is scanned automatically.</p>
-  <div id="initial" class="initial"><strong>Ready to inspect contact links</strong><p>Review contact formats and contact-labelled controls. General link observations are kept separate.</p></div>
+  <div id="initial" class="initial"><strong>Ready to inspect contact links</strong><p>Review contact formats, likely missing names and contact-labelled controls. General link observations are kept separate.</p></div>
   <main id="results" hidden aria-label="Scan results" aria-busy="false">
     <div id="summary" class="summary" aria-label="Scan summary">
       <div class="stat"><strong id="inspected">0</strong><span>Inspected</span></div>
@@ -16,14 +16,14 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
       <div class="stat info"><strong id="infos">0</strong><span>Info</span></div>
     </div>
     <div class="view-row"><label for="view">View<select id="view"><option value="contact">Contact findings</option><option value="general">General link observations</option></select></label></div>
-    <div class="filters"><label for="category">Category<select id="category"><option value="all">All categories</option><option value="whatsapp">WhatsApp</option><option value="telephone">Telephone</option><option value="email">Email</option><option value="placeholder">Placeholder</option></select></label><label for="severity">Severity<select id="severity"><option value="all">All severities</option><option value="error">Errors</option><option value="warning">Warnings</option><option value="info">Information</option></select></label></div>
+    <div class="filters"><label for="category">Category<select id="category"><option value="all">All categories</option><option value="whatsapp">WhatsApp</option><option value="telephone">Telephone</option><option value="email">Email</option><option value="placeholder">Placeholder</option><option value="accessible-name">Accessible name</option></select></label><label for="severity">Severity<select id="severity"><option value="all">All severities</option><option value="error">Errors</option><option value="warning">Warnings</option><option value="info">Information</option></select></label></div>
     <div class="results-heading"><h2 id="section-title">Contact findings</h2><span id="shown"></span></div>
     <p id="limit" class="note" hidden>Scan limits reached; results are incomplete.</p>
     <div id="findings" role="region" aria-label="Contact link findings" tabindex="0"></div>
     <div class="report-bar"><span>Severity counts = groups in this view</span><button id="copy" class="secondary" aria-label="Copy full redacted report">Copy both sections</button><button id="copy-json" class="secondary" aria-label="Copy JSON for both sections">Copy JSON</button></div>
     <details id="fallback" hidden><summary>Copy report manually</summary><textarea id="report" readonly aria-label="Redacted report"></textarea></details>
   </main>
-  <footer><details><summary>Scope & privacy</summary><p id="scope">Top-level DOM only. All frames, including inaccessible frames, and shadow roots are not scanned.</p><p>Contact intent uses destination and bounded label/context heuristics; it can miss or misclassify controls. Placeholders and JavaScript links are not confirmed broken. Event handlers and actual contact delivery are not verified.</p><p>Queries, fragments and URL credentials are hidden. Contact addresses can remain visible. No form data is collected, no destinations are opened and no network checks are made.</p><p>By Jigar Prajapati · Results are discarded when this popup closes.</p></details></footer>`;
+  <footer><details><summary>Scope & privacy</summary><p id="scope">Top-level DOM only. All frames, including inaccessible frames, and shadow roots are not scanned.</p><p>Contact intent uses destination and bounded label/context heuristics; it can miss or misclassify controls. Placeholders and JavaScript links are not confirmed broken. Event handlers and actual contact delivery are not verified.</p><p>Name warnings are conservative; this is not a complete accessibility audit. Element totals sum occurrences per finding, so one control can count in multiple groups.</p><p>Queries, fragments and URL credentials are hidden. Contact addresses can remain visible. No form data is collected, no destinations are opened and no network checks are made.</p><p>By Jigar Prajapati · Results are discarded when this popup closes.</p></details></footer>`;
 const get = <T extends HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 let current: ScanResult | undefined, tabId: number | undefined;
@@ -36,6 +36,7 @@ const categories: Record<Category, string> = {
   telephone: "Telephone",
   email: "Email",
   placeholder: "Placeholder",
+  "accessible-name": "Accessible name",
 };
 get("app").dataset.state = "initial";
 // Let Chrome measure natural content first. A viewport-height cap during the
@@ -197,7 +198,7 @@ get("scan").addEventListener("click", async () => {
     )
       ? "results"
       : "empty";
-    status("Scan complete · Formats only; delivery not verified.");
+    status("Scan complete · Format/name heuristics; delivery not verified.");
   } catch (error) {
     get("app").dataset.state = "error";
     status(

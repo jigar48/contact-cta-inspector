@@ -36,11 +36,12 @@ export function report(scan: ScanResult): string {
     ].join("\n\n");
   };
   return [
-    "Contact CTA Inspector — format review",
+    "Contact CTA Inspector — format and name review",
     `Page origin: ${redact(scan.page)}`,
     `${scan.inspected} elements inspected; ${scan.findings.length} finding groups.`,
     "Top-level DOM only. All frames and shadow roots excluded. No number, inbox or delivery verification.",
     "Contact intent is heuristic. JavaScript event handlers are not inspected or verified. Placeholders and scripted controls are not confirmed broken.",
+    "Accessible-name warnings are conservative heuristics, not a complete accessibility audit or WCAG compliance assessment. Affected-element totals sum occurrences per finding; an element can have both a URL and a name finding.",
     scan.truncated ? "Limits reached: results are incomplete." : "",
     section("contact", "Contact-related findings"),
     section("general", "General link-quality observations"),

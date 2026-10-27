@@ -412,3 +412,27 @@ it("does not restore an old fallback after a re-scan", async () => {
     "",
   );
 });
+
+it("filters and highlights accessible-name warnings using existing controls", async () => {
+  const execute = await mount([
+    { ...finding, category: "accessible-name", severity: "warning" },
+  ]);
+  document.getElementById("scan")!.click();
+  await vi.waitFor(() =>
+    expect(document.querySelectorAll("article")).toHaveLength(1),
+  );
+  const category = document.getElementById("category") as HTMLSelectElement;
+  category.value = "accessible-name";
+  category.dispatchEvent(new Event("change"));
+  expect(
+    document.querySelector("article h3")?.textContent ??
+      document.querySelector("article")?.textContent,
+  ).toContain("Accessible name");
+  (document.querySelector(".locate") as HTMLButtonElement).click();
+  await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(2));
+  expect(execute.mock.calls[1][0].args).toEqual([0, "t"]);
+  category.value = "email";
+  category.dispatchEvent(new Event("change"));
+  expect(document.querySelectorAll("article")).toHaveLength(0);
+  expect(document.getElementById("warnings")?.textContent).toBe("1");
+});

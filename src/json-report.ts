@@ -63,7 +63,13 @@ export function jsonReport(scan: ScanResult): string {
     if (
       !f ||
       !["contact", "general"].includes(f.scope) ||
-      !["whatsapp", "telephone", "email", "placeholder"].includes(f.category) ||
+      ![
+        "whatsapp",
+        "telephone",
+        "email",
+        "placeholder",
+        "accessible-name",
+      ].includes(f.category) ||
       !["error", "warning", "info"].includes(f.severity) ||
       !["destination", "label-or-context", "none"].includes(f.intent) ||
       !integer(f.count) ||

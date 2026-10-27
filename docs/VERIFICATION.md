@@ -1,3 +1,45 @@
+# Accessible-name warnings — local verification
+
+Date: 2026-10-27. Windows, Node v24.22.1, npm 12.2.1 (temporary shim outside
+this repository), Chrome 156.0.8078.47. The sections below this update describe
+historical verification and publication state.
+
+- `npm ci`: pass; 175 packages, lockfile unchanged.
+- `npm run check`: pass; 155 tests in five files (27 new, 128 existing), strict
+  types, lint, formatting, build and ZIP packaging.
+- `npm run smoke`: pass; synthetic demo has 19 candidates, 10 contact groups and
+  three general groups. The new name group contains only the unnamed WhatsApp
+  occurrence. Chrome also verifies SVG title, hidden ARIA reference, visually
+  hidden text and conservative CSS-generated-content deferral. Existing native
+  popup, highlighting, filtering, text/JSON clipboard, fallback, narrow layout
+  and extension-tab zoom checks pass. Refreshed screenshots/results are included.
+- `npm run package:check`, `npm run source:review`: pass.
+- `npm audit --audit-level=moderate`: pass, zero vulnerabilities.
+
+Local ZIP: 19,035 bytes; SHA-256
+`221ad79937b995c0717a670dfa460491458999ac47138241ec412cb71f498ef5`.
+
+Complete source/test/documentation diff reviewed. No dependencies or Chrome
+permissions added; only activeTab and scripting remain. No runtime network,
+telemetry, event-handler inspection/execution, page HTML injection, page-text or
+form-value export was introduced. Naming text stays local, URL redaction remains
+in force, and highlight references are still bounded by 250 retained groups.
+Contact URL validation runs first; missing-name warnings cannot replace contact
+URL results within the existing budget. General observations remain separate.
+
+JSON remains schemaVersion 1 with the documented additive `accessible-name`
+category. Closed-enum consumers need an update. Text and JSON exports contain the
+same findings. Occurrence totals sum per group and can include the same control
+in both a URL group and a name group.
+
+GO for local use and review. This is a conservative missing-name heuristic, not a
+complete accessibility audit or WCAG assessment. Unsupported/ambiguous naming,
+deeply nested controls, frames and shadow roots can be skipped. Manual assistive
+technology evaluation and other OS/Node combinations remain unverified. One
+local commit is requested; no push, release, publication, tag or deployment.
+
+---
+
 # Structured JSON export — local verification
 
 Date: 2026-10-22. Windows, Node v24.19.0, npm 11.17.0, Chrome

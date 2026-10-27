@@ -87,6 +87,20 @@
       </li>
     </ul>
   </section>
+  <section>
+    <h2>Accessible names: before and after (synthetic)</h2>
+    <p>Before: valid destination, unnamed icon (one name warning).</p>
+    <a href="https://wa.me/919876543210"
+      ><svg aria-hidden="true" width="24" height="24">
+        <path d="M2 2h20v20H2z" /></svg
+    ></a>
+    <p>After: same destination, named icon (no name warning).</p>
+    <a href="https://wa.me/919876543210" aria-label="Message us on WhatsApp"
+      ><svg aria-hidden="true" width="24" height="24">
+        <path d="M2 2h20v20H2z" /></svg
+    ></a>
+    <p>This heuristic is not a complete accessibility audit.</p>
+  </section>
   <p id="details">
     Frames and shadow roots are excluded. Re-scan after dynamic changes.
   </p>

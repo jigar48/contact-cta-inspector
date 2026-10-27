@@ -42,7 +42,22 @@ try {
   await page.goto(fixture);
   const scanner = await readFile("dist/scanner.js", "utf8");
   const scanned = await page.evaluate(scanner);
-  assert.equal(scanned.inspected, 17);
+  assert.equal(scanned.inspected, 19);
+  const nameWarnings = scanned.findings.filter(
+    (f) => f.category === "accessible-name",
+  );
+  assert.equal(nameWarnings.length, 1);
+  assert.equal(nameWarnings[0].count, 1);
+  assert.equal(nameWarnings[0].severity, "warning");
+  const naming = await context.newPage();
+  await naming.goto(fixture);
+  await naming.setContent(`<!doctype html><style>.generated::before { content: "Call us"; }</style>
+    <a href="tel:+919876543210" class="generated"></a>
+    <a href="mailto:hello@example.test"><svg><title>Email us</title></svg></a>
+    <span id="name" hidden>Call us</span><a href="tel:+919876543210" aria-labelledby="name"></a>
+    <a href="tel:+919876543210"><span style="position:absolute;clip:rect(0,0,0,0)">Call us</span></a>`);
+  assert.equal((await naming.evaluate(scanner)).findings.length, 0);
+  await naming.close();
   const contactCount = scanned.findings.filter(
     (f) => f.scope === "contact",
   ).length;
@@ -407,6 +422,7 @@ try {
       "unpacked extension load via Chrome CDP",
       "packaged scanner executed on synthetic DOM",
       "query redaction",
+      "missing-name fixture warning, named duplicate, SVG title, hidden ARIA reference, visually hidden text and CSS-generated content deferral",
       "real popup render",
       "Copy JSON real clipboard success, separate unfiltered sections and focused selectable denial fallback",
       "unsupported-context error",

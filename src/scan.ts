@@ -1,3 +1,4 @@
+import { confidentlyUnnamed } from "./accessible-name";
 import { extract } from "./extract";
 import { validate } from "./rules";
 import { redact } from "./privacy";
@@ -18,39 +19,54 @@ export function inspect(
     elements = new Map<number, Element>(),
     duplicates = new Map<string, Finding>();
   // Contact groups receive the bounded report budget before general observations.
-  const prioritized = [
-    ...candidates.filter((c) => c.scope === "contact"),
-    ...candidates.filter((c) => c.scope === "general"),
-  ];
-  for (const { element, href, scope, intent } of prioritized) {
-    if (href !== null && href.length > 4096) continue;
-    const verdict = validate(href, doc.baseURI);
-    if (!verdict) continue;
-    const link = href === null ? "[missing href]" : redact(href);
-    const key = JSON.stringify([verdict, href, scope]);
-    const previous = duplicates.get(key);
-    if (previous) {
-      previous.count++;
-      continue;
+  const contacts = candidates.filter((c) => c.scope === "contact");
+  const general = candidates.filter((c) => c.scope === "general");
+  // Preserve contact URL findings before allocating space to additive name warnings.
+  for (const [batch, names] of [
+    [contacts, false],
+    [contacts, true],
+    [general, false],
+  ] as const) {
+    for (const { element, href, scope, intent } of batch) {
+      if (href !== null && href.length > 4096) continue;
+      const verdict = names
+        ? intent === "destination" && confidentlyUnnamed(element)
+          ? {
+              category: "accessible-name" as const,
+              severity: "warning" as const,
+              explanation:
+                "This direct contact control appears to have no accessible name. Manual review is required; this is not a complete accessibility audit.",
+              fix: "Provide a meaningful accessible name describing the contact action, then verify it with assistive technology.",
+            }
+          : null
+        : validate(href, doc.baseURI);
+      if (!verdict) continue;
+      const link = href === null ? "[missing href]" : redact(href);
+      const key = JSON.stringify([verdict, href, scope]);
+      const previous = duplicates.get(key);
+      if (previous) {
+        previous.count++;
+        continue;
+      }
+      if (findings.length >= 250) continue;
+      const id = findings.length;
+      const finding = {
+        id,
+        ...verdict,
+        link,
+        count: 1,
+        scope,
+        intent,
+        ...(scope === "general" && verdict.category === "placeholder"
+          ? {
+              fix: "Use a meaningful destination or verify the intended scripted behavior and keyboard access manually.",
+            }
+          : {}),
+      };
+      findings.push(finding);
+      duplicates.set(key, finding);
+      elements.set(id, element);
     }
-    if (findings.length >= 250) continue;
-    const id = findings.length;
-    const finding = {
-      id,
-      ...verdict,
-      link,
-      count: 1,
-      scope,
-      intent,
-      ...(scope === "general" && verdict.category === "placeholder"
-        ? {
-            fix: "Use a meaningful destination or verify the intended scripted behavior and keyboard access manually.",
-          }
-        : {}),
-    };
-    findings.push(finding);
-    duplicates.set(key, finding);
-    elements.set(id, element);
   }
   return {
     result: {

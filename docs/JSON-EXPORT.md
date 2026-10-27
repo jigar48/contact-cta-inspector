@@ -25,15 +25,15 @@ new schema version; the extension's package version is independent.
 
 Each finding has exactly these fields:
 
-| Field          | Type / values                                              |
-| -------------- | ---------------------------------------------------------- |
-| `category`     | `whatsapp`, `telephone`, `email`, `placeholder`            |
-| `severity`     | `error`, `warning`, `info`                                 |
-| `intent`       | `destination`, `label-or-context`, `none`                  |
-| `count`        | Positive safe integer: affected elements in this group     |
-| `destination`  | Redacted string, up to 240 UTF-16 code units; can be empty |
-| `explanation`  | Static rule explanation string                             |
-| `suggestedFix` | Static rule guidance string                                |
+| Field          | Type / values                                                      |
+| -------------- | ------------------------------------------------------------------ |
+| `category`     | `whatsapp`, `telephone`, `email`, `placeholder`, `accessible-name` |
+| `severity`     | `error`, `warning`, `info`                                         |
+| `intent`       | `destination`, `label-or-context`, `none`                          |
+| `count`        | Positive safe integer: affected elements in this group             |
+| `destination`  | Redacted string, up to 240 UTF-16 code units; can be empty         |
+| `explanation`  | Static rule explanation string                                     |
+| `suggestedFix` | Static rule guidance string                                        |
 
 All fields are required. Empty sections are empty arrays. `truncated: false` does
 not guarantee that every possible contact control was inspected or works.
@@ -90,3 +90,14 @@ exists, an inbox delivers or a scripted control works. Only the top-level light
 DOM is inspected. Frames, shadow roots, later mutations and event-handler code
 are excluded; intent heuristics can miss or misclassify controls. See the README
 for extraction budgets, supported contexts and other inspection limitations.
+
+### Additive category compatibility
+
+`accessible-name` is an additive version 1 category, always a contact warning with
+`intent: "destination"`. Fields and types are unchanged. Consumers must tolerate
+unknown category strings; consumers with a closed enum must add this value before
+reading new reports. This is an enum extension, so such consumers are not forward
+compatible without that update. JSON and text include the same independent name
+and URL findings. A name warning does not say that a destination is broken or that
+the page fails WCAG. Groups count unnamed occurrences only; one element may count
+in both a URL group and a name group. See README for bounds and conservative skips.
