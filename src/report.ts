@@ -1,5 +1,5 @@
 import { redact } from "./privacy";
-import type { Finding, ScanResult, FindingScope } from "./types";
+import type { Category, Finding, ScanResult, FindingScope } from "./types";
 export function summarize(findings: Finding[]) {
   return {
     groups: findings.length,
@@ -49,4 +49,54 @@ export function report(scan: ScanResult): string {
     .filter(Boolean)
     .join("\n\n")
     .slice(0, 150000);
+}
+
+const safeCategories: Record<Category, string> = {
+  whatsapp: "WhatsApp link format or setup",
+  telephone: "Telephone link format or dialing context",
+  email: "Email link format or recipient setup",
+  placeholder: "Missing, placeholder or scripted link destinations",
+  "accessible-name": "Contact controls that may lack an accessible name",
+};
+
+/** Emit only aggregate integers and fixed text. Never use detailed report fields. */
+export function safeSummary(scan: ScanResult): string {
+  const isCount = (value: number) => Number.isSafeInteger(value) && value >= 0;
+  if (!isCount(scan.inspected) || scan.findings.some((f) => !isCount(f.count)))
+    throw new Error("Safe summary unavailable. Re-scan the page.");
+
+  const section = (scope: FindingScope, title: string) => {
+    const findings = scan.findings.filter((f) => f.scope === scope);
+    const { groups, occurrences, errors, warnings, infos } =
+      summarize(findings);
+    return [
+      title,
+      `Finding groups — ${groups}. Occurrences — ${occurrences}.`,
+      `Groups by severity — error ${errors}, warning ${warnings}, info ${infos}.`,
+      ...Object.entries(safeCategories).flatMap(([category, description]) => {
+        const counts = summarize(
+          findings.filter((f) => f.category === category),
+        );
+        return counts.groups
+          ? [
+              `- ${description} — groups ${counts.groups}, occurrences ${counts.occurrences}.`,
+            ]
+          : [];
+      }),
+    ].join("\n");
+  };
+
+  return [
+    "Contact CTA Inspector — safe summary",
+    `Elements inspected — ${scan.inspected}.`,
+    ...(scan.truncated === true
+      ? [
+          "Scan limits reached. Results are incomplete and counts reflect retained findings.",
+        ]
+      : []),
+    section("contact", "Contact-related findings"),
+    section("general", "General link-quality observations"),
+    "Occurrences are summed per finding group. One element can contribute to multiple groups.",
+    "Findings are heuristic. They do not prove that a CTA is broken or establish WCAG compliance.",
+  ].join("\n\n");
 }

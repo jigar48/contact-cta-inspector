@@ -1,5 +1,5 @@
 {
-  "chrome": "Chrome/156.0.8078.47",
+  "chrome": "Chrome/157.0.8103.38",
   "extensionVersion": "1.1.0",
   "fixtureElements": 19,
   "findingGroups": 13,
@@ -20,10 +20,10 @@
         "x": 0,
         "y": 244.3125,
         "width": 416,
-        "height": 191.1875,
+        "height": 172.6875,
         "top": 244.3125,
         "right": 416,
-        "bottom": 435.5,
+        "bottom": 417,
         "left": 0
       }
     },
@@ -44,11 +44,15 @@
     },
     "zoomFooter": {
       "scrollable": true,
-      "copyVisible": true,
-      "jsonVisible": true
+      "allCopyActionsVisible": true
     }
   },
   "copyStatus": "Full redacted report copied.",
+  "safeSummary": {
+    "clipboard": "passed",
+    "fallback": "passed",
+    "copiedText": "Contact CTA Inspector — safe summary\n\nElements inspected — 19.\n\nContact-related findings\nFinding groups — 10. Occurrences — 10.\nGroups by severity — error 4, warning 3, info 3.\n- WhatsApp link format or setup — groups 1, occurrences 1.\n- Telephone link format or dialing context — groups 2, occurrences 2.\n- Email link format or recipient setup — groups 3, occurrences 3.\n- Missing, placeholder or scripted link destinations — groups 3, occurrences 3.\n- Contact controls that may lack an accessible name — groups 1, occurrences 1.\n\nGeneral link-quality observations\nFinding groups — 3. Occurrences — 4.\nGroups by severity — error 0, warning 3, info 0.\n- Missing, placeholder or scripted link destinations — groups 3, occurrences 4.\n\nOccurrences are summed per finding group. One element can contribute to multiple groups.\n\nFindings are heuristic. They do not prove that a CTA is broken or establish WCAG compliance."
+  },
   "jsonExport": {
     "clipboard": "passed",
     "fallback": "passed",
@@ -61,6 +65,7 @@
     "missing-name fixture warning, named duplicate, SVG title, hidden ARIA reference, visually hidden text and CSS-generated content deferral",
     "real popup render",
     "Copy JSON real clipboard success, separate unfiltered sections and focused selectable denial fallback",
+    "Copy safe summary real clipboard success with all filters active, no identifiers, and focused selectable denial fallback",
     "unsupported-context error",
     "action activeTab grant and real scripting scan through popup controller",
     "popup cards and filtering",

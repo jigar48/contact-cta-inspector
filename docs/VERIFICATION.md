@@ -1,3 +1,88 @@
+# Safe summary — local verification
+
+Verified on 2026-11-07 with Windows, Node v24.22.1, npm 12.2.1 and Chrome
+157.0.8103.38. The sections below this update are historical records.
+
+- `npm ci` installed the locked dependencies. npm reported that it blocked
+  esbuild's postinstall script. The production build and smoke checks passed
+  with that default policy.
+- `npm run check` passed type checking, lint, formatting, build and all
+  163 tests across six files (7 new and 156 existing). New tests cover empty
+  and incomplete scans, category order, grouped occurrences, hostile strings,
+  malformed counts, filter independence and clipboard success and fallback.
+- `npm run smoke` passed against the locally built extension. Chrome opened
+  the native action popup and ran the scanner. In the extension tab, explicit
+  clicks wrote all three formats to the clipboard. Forced denial produced the
+  selected safe summary in the existing fallback. The summary was identical
+  with filters applied and cleared.
+- Reviewed the diff and synthetic screenshots. The copy buttons fit in the
+  [native popup](screenshots/popup-native-results.png), wrap at
+  [320 CSS pixels](screenshots/popup-narrow.png) and are reachable by
+  scrolling at [200% extension-tab zoom](screenshots/popup-zoom-200-copy.png).
+  Native-popup zoom and manual assistive technology testing remain unverified.
+- `npm run package:check` and `npm run source:review` passed. The local
+  ZIP is 19,567 bytes with SHA-256
+  `6206b8add6bb2a4a9881ac76dd5cc61f69def64f00afeeb563e3d7795b1ac6a2`.
+- `npm audit --audit-level=moderate` exited 1. It reported 10 moderate
+  entries from one `minimatch` advisory through the existing ESLint and
+  TypeScript ESLint development dependency tree. `npm audit --omit=dev
+--audit-level=moderate` reported zero vulnerabilities. The package manifest
+  and lockfile are unchanged.
+
+The formatter uses only numeric counts, fixed scope/category/severity
+comparisons and the incomplete flag. It emits fixed category descriptions
+without using page or destination fields, raw reasons or suggestions.
+Clipboard writes require a click and reuse the existing manual fallback.
+The detailed text and JSON formats are unchanged. Package inspection
+confirmed only `activeTab` and `scripting`. The feature adds no collection,
+storage, telemetry, network access or dependencies.
+
+## Synthetic before and after
+
+Serve `public/demo.html` on localhost, open it in Chrome and click **Scan
+page**. Before, a shareable write-up required reviewing the detailed
+output by hand. On this fixture, **Copy both sections** includes the
+synthetic destination `mailto:missing-at[query/fragment hidden]`, as does
+**Copy JSON**. After, **Copy safe summary** includes the email category and
+its counts without the destination. The repeated general placeholder
+contributes two occurrences to one group, so three general groups account
+for four occurrences.
+
+The following is the actual output captured after Chrome successfully
+wrote the summary to the clipboard. The General view, Email category and
+Errors severity were selected, with zero cards visible. The
+[smoke results](smoke-results.json) record the same text.
+
+```text
+Contact CTA Inspector — safe summary
+
+Elements inspected — 19.
+
+Contact-related findings
+Finding groups — 10. Occurrences — 10.
+Groups by severity — error 4, warning 3, info 3.
+- WhatsApp link format or setup — groups 1, occurrences 1.
+- Telephone link format or dialing context — groups 2, occurrences 2.
+- Email link format or recipient setup — groups 3, occurrences 3.
+- Missing, placeholder or scripted link destinations — groups 3, occurrences 3.
+- Contact controls that may lack an accessible name — groups 1, occurrences 1.
+
+General link-quality observations
+Finding groups — 3. Occurrences — 4.
+Groups by severity — error 0, warning 3, info 0.
+- Missing, placeholder or scripted link destinations — groups 3, occurrences 4.
+
+Occurrences are summed per finding group. One element can contribute to multiple groups.
+
+Findings are heuristic. They do not prove that a CTA is broken or establish WCAG compliance.
+```
+
+Aggregate counts and categories can still reveal limited information about a
+page. Review the summary before sharing. If scan limits are reached, counts
+describe only the findings retained by the scan.
+
+---
+
 # Final integration review — 2026-10-27
 
 Initial HEAD matched approved commit `7762b6d916c1726229040288baf8039af5662cb8`

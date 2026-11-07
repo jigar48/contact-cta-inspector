@@ -436,3 +436,89 @@ it("filters and highlights accessible-name warnings using existing controls", as
   expect(document.querySelectorAll("article")).toHaveLength(0);
   expect(document.getElementById("warnings")?.textContent).toBe("1");
 });
+
+it("copies the completed scan's safe summary independently of all filters", async () => {
+  const execute = await mount(
+    [
+      {
+        ...finding,
+        link: "mailto:private@example.test",
+        explanation: "PRIVATE_REASON",
+      },
+      { ...finding, scope: "general", category: "placeholder", count: 7 },
+    ],
+    9,
+    true,
+  );
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, "clipboard", {
+    value: { writeText },
+    configurable: true,
+  });
+  const copy = document.getElementById("copy-safe")!;
+  copy.click();
+  expect(writeText).not.toHaveBeenCalled();
+  document.getElementById("scan")!.click();
+  copy.click();
+  await vi.waitFor(() =>
+    expect(document.getElementById("results")?.hidden).toBe(false),
+  );
+  expect(writeText).not.toHaveBeenCalled();
+  copy.click();
+  await vi.waitFor(() =>
+    expect(document.getElementById("status")?.textContent).toBe(
+      "Safe summary copied.",
+    ),
+  );
+  const output = writeText.mock.calls[0][0];
+  for (const [id, value] of [
+    ["view", "general"],
+    ["category", "telephone"],
+    ["severity", "info"],
+  ]) {
+    const select = document.getElementById(id) as HTMLSelectElement;
+    select.value = value;
+    select.dispatchEvent(new Event("change"));
+  }
+  expect(document.querySelectorAll("article")).toHaveLength(0);
+  copy.click();
+  expect(writeText.mock.calls[1][0]).toBe(output);
+  expect(execute).toHaveBeenCalledTimes(1);
+  expect(output).toContain(
+    "Email link format or recipient setup — groups 1, occurrences 3.",
+  );
+  expect(output).toContain(
+    "scripted link destinations — groups 1, occurrences 7.",
+  );
+  expect(output).toContain("Results are incomplete");
+  expect(output).not.toMatch(/private@example\.test|PRIVATE_REASON|a\.test/);
+});
+
+it("replaces a detailed clipboard fallback with the selected safe summary", async () => {
+  await mount([finding]);
+  const writeText = vi.fn().mockRejectedValue(new Error("denied"));
+  Object.defineProperty(navigator, "clipboard", {
+    value: { writeText },
+    configurable: true,
+  });
+  document.getElementById("scan")!.click();
+  await vi.waitFor(() =>
+    expect(document.getElementById("results")?.hidden).toBe(false),
+  );
+  const area = document.getElementById("report") as HTMLTextAreaElement;
+  document.getElementById("copy")!.click();
+  await vi.waitFor(() => expect(area.value).toContain("mailto:bad"));
+  document.getElementById("copy-safe")!.click();
+  expect(area.value).toBe("");
+  await vi.waitFor(() =>
+    expect(area.getAttribute("aria-label")).toBe("Safe summary"),
+  );
+  expect(area.value).toBe(writeText.mock.calls[1][0]);
+  expect(area.value).not.toContain("mailto:");
+  expect(document.activeElement).toBe(area);
+  expect(area.selectionStart).toBe(0);
+  expect(area.selectionEnd).toBe(area.value.length);
+  expect((document.getElementById("fallback") as HTMLDetailsElement).open).toBe(
+    true,
+  );
+});

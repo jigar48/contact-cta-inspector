@@ -173,6 +173,11 @@ try {
   assert.equal(nativeLayout.heading, 20);
   assert(nativeLayout.footer <= nativeScanned.height + 1);
   assert(nativeLayout.button <= 32);
+  assert(
+    (await nativeEval(
+      'document.querySelector("#copy-safe").getBoundingClientRect().bottom',
+    )) <= nativeScanned.height,
+  );
   const nativeScroll = await nativeEval(
     '(()=>{const el=document.querySelector("#findings");el.scrollTop=150;return el.scrollTop;})()',
   );
@@ -238,14 +243,7 @@ try {
     await popup.locator("article").count(),
     scanned.findings.filter((f) => f.category === "email").length,
   );
-  await popup.locator("#copy").click();
-  await popup.waitForFunction(() =>
-    /copied|Clipboard unavailable/.test(
-      document.querySelector("#status").textContent,
-    ),
-  );
-  const copyStatus = await popup.locator("#status").textContent();
-  // Real clipboard write from an explicit click, while UI filters are active.
+  // Capture each export after the real clipboard write succeeds.
   await popup.bringToFront();
   await popup.evaluate(() => {
     const write = window.navigator.clipboard.writeText.bind(
@@ -253,21 +251,57 @@ try {
     );
     window.navigator.clipboard.writeText = async (text) => {
       await write(text);
-      window.smokeCopiedJson = text;
+      window.smokeCopiedText = text;
     };
   });
+  await popup.locator("#copy").click();
+  await popup.waitForFunction(
+    () =>
+      document.querySelector("#status").textContent ===
+      "Full redacted report copied.",
+  );
+  const copyStatus = await popup.locator("#status").textContent();
+  const copiedReport = await popup.evaluate(() => window.smokeCopiedText);
+  assert.match(copiedReport, /mailto:missing-at\[query\/fragment hidden\]/);
   await popup.locator("#copy-json").click();
   await popup.waitForFunction(
     () =>
       document.querySelector("#status").textContent ===
       "JSON for both sections copied.",
   );
-  const copiedJson = await popup.evaluate(() => window.smokeCopiedJson);
+  const copiedJson = await popup.evaluate(() => window.smokeCopiedText);
   const structured = JSON.parse(copiedJson);
   assert.equal(structured.schemaVersion, 1);
   assert.equal(structured.contactFindings.length, contactCount);
   assert.equal(structured.generalObservations.length, generalCount);
   assert(!copiedJson.includes("PRIVATE_DEMO_"));
+  assert(
+    structured.contactFindings.some(
+      (f) => f.destination === "mailto:missing-at[query/fragment hidden]",
+    ),
+  );
+  await popup.locator("#view").selectOption("general");
+  await popup.locator("#severity").selectOption("error");
+  assert.equal(await popup.locator("article").count(), 0);
+  await popup.locator("#copy-safe").click();
+  await popup.waitForFunction(
+    () =>
+      document.querySelector("#status").textContent === "Safe summary copied.",
+  );
+  const copiedSafeSummary = await popup.evaluate(() => window.smokeCopiedText);
+  assert.match(copiedSafeSummary, /Elements inspected — 19\./);
+  assert.match(
+    copiedSafeSummary,
+    /Contact-related findings\nFinding groups — 10\./,
+  );
+  assert.match(
+    copiedSafeSummary,
+    /General link-quality observations\nFinding groups — 3\. Occurrences — 4\./,
+  );
+  assert.doesNotMatch(
+    copiedSafeSummary,
+    /https?:|127\.0\.0\.1|wa\.me|mailto:|tel:|missing-at|PRIVATE_DEMO_|919876543210/,
+  );
   // Exercise denied clipboard access deterministically in the packaged popup.
   await popup.evaluate(() => {
     Object.defineProperty(window.navigator, "clipboard", {
@@ -287,11 +321,31 @@ try {
     await popup.locator("#report").evaluate((el) => el.selectionEnd),
     copiedJson.length,
   );
+  await popup.locator("#copy-safe").click();
+  await popup.locator("#fallback").waitFor({ state: "visible" });
+  assert.equal(await popup.locator("#report").inputValue(), copiedSafeSummary);
+  assert.equal(
+    await popup.locator("#report").getAttribute("aria-label"),
+    "Safe summary",
+  );
+  assert.equal(await popup.evaluate(() => document.activeElement.id), "report");
+  assert.equal(
+    await popup.locator("#report").evaluate((el) => el.selectionEnd),
+    copiedSafeSummary.length,
+  );
   await popup.evaluate(() => {
     delete window.navigator.clipboard;
-    document.querySelector("#fallback").hidden = true;
   });
+  await popup.locator("#view").selectOption("contact");
+  await popup.locator("#severity").selectOption("all");
   await popup.locator("#category").selectOption("all");
+  await popup.locator("#copy-safe").click();
+  await popup.getByText("Safe summary copied.", { exact: true }).waitFor();
+  assert.equal(
+    await popup.evaluate(() => window.smokeCopiedText),
+    copiedSafeSummary,
+  );
+  assert(await popup.locator("#fallback").isHidden());
   await popup.bringToFront();
   await popup.locator("#scan").focus();
   await popup.keyboard.press("Tab");
@@ -324,12 +378,19 @@ try {
   await popup.setViewportSize({ width: 320, height: 600 });
   const narrow = await popup.evaluate(() => ({
     app: document.querySelector("#app").getBoundingClientRect().width,
-    overflow: [...document.querySelectorAll("article,code,select,h1")].some(
-      (el) => el.scrollWidth > el.clientWidth + 1,
-    ),
+    overflow: [
+      ...document.querySelectorAll("article,code,select,h1,.report-bar button"),
+    ].some((el) => el.scrollWidth > el.clientWidth + 1),
   }));
   assert.equal(narrow.app, 320);
   assert.equal(narrow.overflow, false);
+  assert(
+    await popup
+      .locator("#copy-safe")
+      .evaluate(
+        (el) => el.getBoundingClientRect().bottom <= window.innerHeight,
+      ),
+  );
   await popup.screenshot({ path: "docs/screenshots/popup-narrow.png" });
   await popup.setViewportSize({ width: 416, height: 650 });
   const zoom = await popup.evaluate(async () => {
@@ -342,30 +403,32 @@ try {
   const zoomLayout = await popup.evaluate(() => ({
     width: window.innerWidth,
     app: document.querySelector("#app").getBoundingClientRect().width,
-    overflow: [...document.querySelectorAll("article,code,select,h1")].some(
-      (el) => el.scrollWidth > el.clientWidth + 1,
-    ),
+    overflow: [
+      ...document.querySelectorAll("article,code,select,h1,.report-bar button"),
+    ].some((el) => el.scrollWidth > el.clientWidth + 1),
   }));
   assert.equal(zoomLayout.overflow, false);
   await popup.screenshot({ path: "docs/screenshots/popup-zoom-200.png" });
   const zoomFooter = await popup.evaluate(() => {
     const app = document.querySelector("#app");
     app.scrollTop = app.scrollHeight;
-    const copy = document.querySelector("#copy").getBoundingClientRect();
     return {
       scrollable: app.scrollHeight > app.clientHeight,
-      copyVisible: copy.top >= 0 && copy.bottom <= window.innerHeight,
-      jsonVisible: (() => {
-        const json = document
-          .querySelector("#copy-json")
-          .getBoundingClientRect();
-        return json.top >= 0 && json.bottom <= window.innerHeight;
-      })(),
+      allCopyActionsVisible: [
+        ...document.querySelectorAll(".report-bar button"),
+      ].every((button) => {
+        const { top, bottom, left, right } = button.getBoundingClientRect();
+        return (
+          top >= 0 &&
+          bottom <= window.innerHeight &&
+          left >= 0 &&
+          right <= window.innerWidth
+        );
+      }),
     };
   });
-  assert(
-    zoomFooter.scrollable && zoomFooter.copyVisible && zoomFooter.jsonVisible,
-  );
+  assert(zoomFooter.scrollable && zoomFooter.allCopyActionsVisible);
+  await popup.screenshot({ path: "docs/screenshots/popup-zoom-200-copy.png" });
   await popup.evaluate(async () => {
     const tab = await chrome.tabs.getCurrent();
     await chrome.tabs.setZoom(tab.id, 1);
@@ -413,6 +476,11 @@ try {
       zoomFooter,
     },
     copyStatus,
+    safeSummary: {
+      clipboard: "passed",
+      fallback: "passed",
+      copiedText: copiedSafeSummary,
+    },
     jsonExport: {
       clipboard: "passed",
       fallback: "passed",
@@ -425,6 +493,7 @@ try {
       "missing-name fixture warning, named duplicate, SVG title, hidden ARIA reference, visually hidden text and CSS-generated content deferral",
       "real popup render",
       "Copy JSON real clipboard success, separate unfiltered sections and focused selectable denial fallback",
+      "Copy safe summary real clipboard success with all filters active, no identifiers, and focused selectable denial fallback",
       "unsupported-context error",
       "action activeTab grant and real scripting scan through popup controller",
       "popup cards and filtering",

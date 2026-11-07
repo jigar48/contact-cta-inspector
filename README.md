@@ -8,12 +8,13 @@ For this local build, extract `release/contact-cta-inspector-1.1.0.zip` to a fol
 
 ## Use
 
-The popup uses a compact 416px document width, a one-line title and a 30px Scan/Re-scan button. After scanning, inspected/error/warning/info counts and filters stay above the main findings scroller. Copy report and Scope & privacy stay below it. At narrow widths filters stack; at 200% zoom the popup can also scroll as a whole to keep every control reachable.
+The popup uses a compact 416px document width, a one-line title and a 30px Scan/Re-scan button. After scanning, inspected/error/warning/info counts and filters stay above the main findings scroller. Copy actions and Scope & privacy stay below it. At narrow widths filters stack and copy actions wrap as needed. At 200% zoom the popup can also scroll as a whole to keep every control reachable.
 
 - **Contact findings** is the default view: WhatsApp, telephone and email destinations, plus placeholders or scripted controls with a clear contact signal.
 - **General observations** is an opt-in View option for ordinary navigation placeholders, JavaScript links and missing destinations with no clear contact intent. These do not inflate contact severity counts and are not confirmed broken.
 - Each View option gives group and affected-element totals. Severity counts show groups across the selected view; category/severity filters affect cards, not these view totals. The findings header gives the filtered groups and affected elements. Identical raw destinations with the same validation result are grouped separately within each view.
 - Highlight the first affected element for three seconds. This scrolls it into view; hidden or removed elements cannot be highlighted. Scroll/resize removes the overlay early.
+- **Copy safe summary** uses the completed scan and includes counts and fixed category descriptions for both sections, regardless of filters. It includes an incomplete-results notice when the scan reaches a limit. It excludes site and destination identifiers, finding details and page text. If clipboard access fails, the same summary appears in a focused, selectable text box. Aggregate counts and category presence can still reveal limited information about a page. Review the summary before sharing. See the [synthetic before/after demonstration and actual copied output](docs/VERIFICATION.md#synthetic-before-and-after).
 - **Copy both sections** includes separately counted contact findings and general observations, regardless of filters. If clipboard access fails, a selectable redacted report appears.
 - **Copy JSON** exports both sections as deterministic, versioned JSON (`schemaVersion: 1`), regardless of filters. Clipboard failure opens a focused, selectable fallback. See [JSON export schema, synthetic example and QA guidance](docs/JSON-EXPORT.md). Review retained contact addresses and paths before sharing.
 - Re-scan after the page changes. Closing the popup discards results; element references expire after five minutes or navigation.
@@ -38,7 +39,7 @@ Warnings group unnamed occurrences by identical raw destination, separately from
 
 ## Privacy and permissions
 
-`activeTab` grants temporary access after invocation; `scripting` performs the user-requested scan and highlight. There are no host permissions, background worker, storage, accounts, analytics or runtime network calls. No forms, event-handler code or page text are returned. URL queries/fragments, script payloads and URL credentials are hidden before findings leave the page. Contact addresses, telephone numbers and path contents can remain in reports: review before sharing. No browsing history or results are persisted. The clipboard changes only on explicit Copy.
+`activeTab` grants temporary access after invocation; `scripting` performs the user-requested scan and highlight. There are no host permissions, background worker, storage, accounts, analytics or runtime network calls. No forms, event-handler code or page text are returned. URL queries/fragments, script payloads and URL credentials are hidden before findings leave the page. Contact addresses, telephone numbers and path contents can remain in the detailed text and JSON reports. Review any export before sharing. No browsing history or results are persisted. The clipboard changes only on explicit Copy.
 
 ## Develop
 

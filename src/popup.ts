@@ -1,7 +1,7 @@
 import "./style.css";
 import { jsonReport } from "./json-report";
 import { scanTab, highlightTab } from "./bridge";
-import { filterFindings, report, summarize } from "./report";
+import { filterFindings, report, safeSummary, summarize } from "./report";
 import type { ScanResult, Category, FindingScope } from "./types";
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
@@ -20,7 +20,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     <div class="results-heading"><h2 id="section-title">Contact findings</h2><span id="shown"></span></div>
     <p id="limit" class="note" hidden>Scan limits reached; results are incomplete.</p>
     <div id="findings" role="region" aria-label="Contact link findings" tabindex="0"></div>
-    <div class="report-bar"><span>Severity counts = groups in this view</span><button id="copy" class="secondary" aria-label="Copy full redacted report">Copy both sections</button><button id="copy-json" class="secondary" aria-label="Copy JSON for both sections">Copy JSON</button></div>
+    <div class="report-bar"><span>Severity counts = groups in this view</span><button id="copy-safe" class="secondary">Copy safe summary</button><button id="copy" class="secondary" aria-label="Copy full redacted report">Copy both sections</button><button id="copy-json" class="secondary" aria-label="Copy JSON for both sections">Copy JSON</button></div>
     <details id="fallback" hidden><summary>Copy report manually</summary><textarea id="report" readonly aria-label="Redacted report"></textarea></details>
   </main>
   <footer><details><summary>Scope & privacy</summary><p id="scope">Top-level DOM only. All frames, including inaccessible frames, and shadow roots are not scanned.</p><p>Contact intent uses destination and bounded label/context heuristics; it can miss or misclassify controls. Placeholders and JavaScript links are not confirmed broken. Event handlers and actual contact delivery are not verified.</p><p>Name warnings are conservative; this is not a complete accessibility audit. Element totals sum occurrences per finding, so one control can count in multiple groups.</p><p>Queries, fragments and URL credentials are hidden. Contact addresses can remain visible. No form data is collected, no destinations are opened and no network checks are made.</p><p>By Jigar Prajapati · Results are discarded when this popup closes.</p></details></footer>`;
@@ -212,41 +212,55 @@ get("scan").addEventListener("click", async () => {
 });
 for (const id of ["category", "severity", "view"])
   get(id).addEventListener("change", render);
-async function copyReport(format: "text" | "json") {
+const exportsByFormat = {
+  text: {
+    generate: report,
+    copied: "Full redacted report copied.",
+    label: "Redacted report",
+  },
+  json: {
+    generate: jsonReport,
+    copied: "JSON for both sections copied.",
+    label: "Redacted JSON report",
+  },
+  safe: {
+    generate: safeSummary,
+    copied: "Safe summary copied.",
+    label: "Safe summary",
+  },
+};
+async function copyReport(format: keyof typeof exportsByFormat) {
   if (!current) return;
   const attempt = ++copyAttempt;
+  const { generate, copied, label } = exportsByFormat[format];
   get("fallback").hidden = true;
   get<HTMLTextAreaElement>("report").value = "";
   let text: string;
   try {
-    text = format === "json" ? jsonReport(current) : report(current);
+    text = generate(current);
   } catch {
     status(
-      "JSON export unavailable: invalid or oversized scan. Re-scan the page.",
+      format === "safe"
+        ? "Safe summary unavailable. Re-scan the page."
+        : "JSON export unavailable: invalid or oversized scan. Re-scan the page.",
     );
     return;
   }
   try {
     await navigator.clipboard.writeText(text);
     if (attempt !== copyAttempt) return;
-    status(
-      format === "json"
-        ? "JSON for both sections copied."
-        : "Full redacted report copied.",
-    );
+    status(copied);
   } catch {
     if (attempt !== copyAttempt) return;
     get("fallback").hidden = false;
     get<HTMLDetailsElement>("fallback").open = true;
-    get<HTMLTextAreaElement>("report").setAttribute(
-      "aria-label",
-      format === "json" ? "Redacted JSON report" : "Redacted report",
-    );
+    get<HTMLTextAreaElement>("report").setAttribute("aria-label", label);
     get<HTMLTextAreaElement>("report").value = text;
     get<HTMLTextAreaElement>("report").focus();
     get<HTMLTextAreaElement>("report").select();
     status("Clipboard unavailable. Select and copy the report below.");
   }
 }
+get("copy-safe").addEventListener("click", () => void copyReport("safe"));
 get("copy").addEventListener("click", () => void copyReport("text"));
 get("copy-json").addEventListener("click", () => void copyReport("json"));

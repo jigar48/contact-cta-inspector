@@ -324,11 +324,12 @@ code {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px 8px;
   flex: none;
   background: #fff;
 }
 .report-bar span {
+  flex-basis: 100%;
   font-size: 10px;
   color: #64727b;
 }
