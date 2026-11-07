@@ -14,7 +14,7 @@ The popup uses a compact 416px document width, a one-line title and a 30px Scan/
 - **General observations** is an opt-in View option for ordinary navigation placeholders, JavaScript links and missing destinations with no clear contact intent. These do not inflate contact severity counts and are not confirmed broken.
 - Each View option gives group and affected-element totals. Severity counts show groups across the selected view; category/severity filters affect cards, not these view totals. The findings header gives the filtered groups and affected elements. Identical raw destinations with the same validation result are grouped separately within each view.
 - Highlight the first affected element for three seconds. This scrolls it into view; hidden or removed elements cannot be highlighted. Scroll/resize removes the overlay early.
-- **Copy safe summary** uses the completed scan and includes counts and fixed category descriptions for both sections, regardless of filters. It includes an incomplete-results notice when the scan reaches a limit. It excludes site and destination identifiers, finding details and page text. If clipboard access fails, the same summary appears in a focused, selectable text box. Aggregate counts and category presence can still reveal limited information about a page. Review the summary before sharing. See the [synthetic before/after demonstration and actual copied output](docs/VERIFICATION.md#synthetic-before-and-after).
+- **Copy safe summary** uses the completed scan and includes counts and fixed category descriptions for both sections, regardless of filters. It flags incomplete scans and explains that heuristic findings cannot establish CTA failure or WCAG compliance. It excludes site and destination identifiers, finding details and page text. If clipboard access fails, the same summary appears in a focused, selectable text box. Aggregate counts and category presence can still reveal limited information about a page. Review the summary before sharing. See the [synthetic before/after demonstration and actual copied output](docs/VERIFICATION.md#synthetic-before-and-after).
 - **Copy both sections** includes separately counted contact findings and general observations, regardless of filters. If clipboard access fails, a selectable redacted report appears.
 - **Copy JSON** exports both sections as deterministic, versioned JSON (`schemaVersion: 1`), regardless of filters. Clipboard failure opens a focused, selectable fallback. See [JSON export schema, synthetic example and QA guidance](docs/JSON-EXPORT.md). Review retained contact addresses and paths before sharing.
 - Re-scan after the page changes. Closing the popup discards results; element references expire after five minutes or navigation.
@@ -43,7 +43,7 @@ Warnings group unnamed occurrences by identical raw destination, separately from
 
 ## Develop
 
-Node 22.12+ or Node 24 and npm are required.
+Use Node 22.12 or later in the 22.x series, or Node 24 or newer, with npm.
 
 ```sh
 npm ci
@@ -51,15 +51,17 @@ npm run check
 npm audit --audit-level=moderate
 ```
 
-`npm run dev` serves a UI development preview; Chrome APIs require the built extension. `npm run build` produces `dist` and the ZIP. `public/demo.html` is a synthetic fixture: serve the repository over localhost and open it there. It is excluded from release packaging. `npm test` runs synthetic DOM, integration, rules and popup tests. CI defines Node 22/24 on Ubuntu, Windows and macOS; configured jobs are not evidence that those remote checks have run.
+`npm run dev` serves a UI development preview. Chrome APIs require the built extension. `npm run build` produces `dist` and the ZIP. Serve the repository over localhost and open `public/demo.html` to use the synthetic fixture. Packaging excludes the fixture. `npm test` runs synthetic DOM, integration, rules and popup tests.
 
-Architecture: `extract.ts` bounds DOM work; `intent.ts` determines contact intent; `rules.ts` validates formats without changing severity based on intent; `scan.ts` prioritizes/groups findings and associates elements; `privacy.ts` redacts; `content.ts` is bundled as an isolated injection; `bridge.ts` contains Chrome calls; `highlight.ts` manages temporary overlays; `report.ts` handles scoped counts/filters and sectioned report text; `json-report.ts` builds bounded, allowlisted structured exports; `popup.ts` renders with text nodes. Only static application markup uses innerHTML.
+GitHub Actions runs the full check, package inspection, source review and npm audit on Ubuntu, Windows and macOS with Node 22 and 24. All six jobs passed after the development tooling was updated to use patched `minimatch`. [Verified CI run](https://github.com/jigar48/contact-cta-inspector/actions/runs/42381684552) · [Current workflow status](https://github.com/jigar48/contact-cta-inspector/actions/workflows/ci.yml)
+
+`extract.ts` bounds DOM work, `intent.ts` determines contact intent and `rules.ts` validates formats independently of intent. `scan.ts` prioritizes and groups findings and associates them with elements. `privacy.ts` redacts destinations, `content.ts` bundles the isolated scanner, `bridge.ts` handles Chrome calls and `highlight.ts` manages temporary overlays. `report.ts` handles scoped counts, filters and both text exports. `json-report.ts` builds bounded, allowlisted structured exports. `popup.ts` renders data with text nodes and uses `innerHTML` for static application markup.
 
 ## Screenshots
 
 ![Contact-first findings in the native Chrome popup](docs/screenshots/popup-native-results.png)
 
-[General observations view](docs/screenshots/popup-native-general.png) · [Navigation-only acceptance scenario](docs/screenshots/popup-navigation-noise.png)
+[General observations view](docs/screenshots/popup-native-general.png) · [Navigation-only acceptance scenario](docs/screenshots/popup-navigation-noise.png) · [Copy actions at 200% extension-tab zoom](docs/screenshots/popup-zoom-200-copy.png)
 
 Actual automated Chrome captures are in `docs/screenshots`: `popup-native-initial.png` and `popup-native-results.png` show the native action popup; `popup-empty.png`, `popup-results.png`, `popup-error.png` and `popup-no-findings.png` show the extension document states; `popup-narrow.png` tests 320px and long URLs; `popup-zoom-200.png` tests real Chrome 200% tab zoom. Store screenshots still need store-appropriate sizing. To reproduce: build and run `npm run smoke` with installed Chrome (`CHROME_PATH` can override the executable path). Use synthetic pages only. See `docs/VERIFICATION.md` for measurements and remaining release checks.
 
