@@ -6,6 +6,26 @@ import { createServer } from "node:http";
 import assert from "node:assert/strict";
 import { URL } from "node:url";
 import { chromePath } from "./chrome-path.mjs";
+
+async function fieldBorderContrast(field) {
+  return field.evaluate((el) => {
+    function luminance(color) {
+      const weights = [0.2126, 0.7152, 0.0722];
+      return color.match(/\d+/g).reduce((sum, channel, index) => {
+        const srgb = Number(channel) / 255;
+        const linear =
+          srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+        return sum + linear * weights[index];
+      }, 0);
+    }
+    const style = window.getComputedStyle(el);
+    return (
+      (luminance(style.backgroundColor) + 0.05) /
+      (luminance(style.borderTopColor) + 0.05)
+    );
+  });
+}
+
 const profile = await mkdtemp(join(tmpdir(), "cta-chrome-"));
 const chrome = chromePath();
 const server = createServer(async (req, res) => {
@@ -84,10 +104,13 @@ try {
   await popup.setViewportSize({ width: 416, height: 650 });
   await popup.screenshot({ path: "docs/screenshots/popup-empty.png" });
   // Extension popup is opened as a tab here. This tests Chrome's real refusal path, not an action-granted activeTab scan.
-  await popup.locator("#scan").click();
-  await popup.waitForFunction(() => !document.querySelector("#scan").disabled);
+  await popup.locator("#scan").press("Enter");
+  await popup.waitForFunction(
+    () => !document.querySelector("#scan").hasAttribute("aria-disabled"),
+  );
   const failure = await popup.locator("#status").textContent();
   assert.match(failure, /cannot be scanned|could not access/);
+  assert.equal(await popup.evaluate(() => document.activeElement.id), "scan");
   await mkdir("docs/screenshots", { recursive: true });
   await popup.setViewportSize({ width: 416, height: 650 });
   await popup.screenshot({ path: "docs/screenshots/popup-error.png" });
@@ -96,37 +119,41 @@ try {
   });
   const targetInfo = targetInfos.find((t) => t.url === fixture);
   assert(targetInfo, "Fixture tab target must exist");
-  await page.bringToFront();
-  await cdp.send("Extensions.triggerAction", {
-    id,
-    targetId: targetInfo.targetId,
-  });
-  await page.waitForTimeout(250);
   const popupSession = await context.newCDPSession(popup);
   const { targetInfo: existingPopup } = await popupSession.send(
     "Target.getTargetInfo",
   );
-  let nativeTarget;
-  for (let attempt = 0; attempt < 60 && !nativeTarget; attempt++) {
-    nativeTarget = (await cdp.send("Target.getTargets")).targetInfos.find(
-      (t) =>
-        t.type === "page" &&
-        t.url === popup.url() &&
-        t.targetId !== existingPopup.targetId,
-    );
-    if (!nativeTarget) await page.waitForTimeout(50);
+  let nativeSessionId;
+  async function openNativePopup() {
+    await page.bringToFront();
+    await cdp.send("Extensions.triggerAction", {
+      id,
+      targetId: targetInfo.targetId,
+    });
+    let target;
+    for (let attempt = 0; attempt < 60 && !target; attempt++) {
+      target = (await cdp.send("Target.getTargets")).targetInfos.find(
+        (t) =>
+          t.type === "page" &&
+          t.url === popup.url() &&
+          t.targetId !== existingPopup.targetId,
+      );
+      if (!target) await page.waitForTimeout(50);
+    }
+    assert(target, "Chrome must open the action popup");
+    ({ sessionId: nativeSessionId } = await cdp.send("Target.attachToTarget", {
+      targetId: target.targetId,
+      flatten: false,
+    }));
+    await nativeSend("Runtime.runIfWaitingForDebugger");
+    await page.waitForTimeout(300);
   }
-  assert(nativeTarget, "Chrome must open the action popup");
-  const { sessionId } = await cdp.send("Target.attachToTarget", {
-    targetId: nativeTarget.targetId,
-    flatten: false,
-  });
   let commandId = 0;
   const nativeSend = (method, params = {}) =>
     new Promise((resolve, reject) => {
       const id = ++commandId;
       const listener = (event) => {
-        if (event.sessionId !== sessionId) return;
+        if (event.sessionId !== nativeSessionId) return;
         const msg = JSON.parse(event.message);
         if (msg.id !== id) return;
         cdp.off("Target.receivedMessageFromTarget", listener);
@@ -136,7 +163,7 @@ try {
       cdp.on("Target.receivedMessageFromTarget", listener);
       cdp
         .send("Target.sendMessageToTarget", {
-          sessionId,
+          sessionId: nativeSessionId,
           message: JSON.stringify({ id, method, params }),
         })
         .catch(reject);
@@ -150,8 +177,19 @@ try {
     if (value.exceptionDetails) throw new Error(value.exceptionDetails.text);
     return value.result.value;
   };
-  await nativeSend("Runtime.runIfWaitingForDebugger");
-  await page.waitForTimeout(300);
+  async function nativeKey(key, code, windowsVirtualKeyCode, text, modifiers) {
+    const params = { key, code, windowsVirtualKeyCode, modifiers };
+    await nativeSend("Input.dispatchKeyEvent", {
+      ...params,
+      type: text ? "keyDown" : "rawKeyDown",
+      text,
+    });
+    await nativeSend("Input.dispatchKeyEvent", { ...params, type: "keyUp" });
+  }
+  const nativeFocus = () => nativeEval("document.activeElement.id");
+  const nativeZoomRatio = () => nativeEval("devicePixelRatio");
+  await openNativePopup();
+  const nativeDefaultDpr = await nativeZoomRatio();
   const nativeInitial = await nativeEval(
     "({width:innerWidth,height:innerHeight,root:document.documentElement.getBoundingClientRect().width,body:document.body.getBoundingClientRect().width})",
   );
@@ -160,8 +198,11 @@ try {
     "docs/screenshots/popup-native-initial.png",
     Buffer.from((await nativeSend("Page.captureScreenshot")).data, "base64"),
   );
-  await nativeEval('document.querySelector("#scan").click()');
+  await nativeKey("Tab", "Tab", 9);
+  assert.equal(await nativeFocus(), "scan");
+  await nativeKey("Enter", "Enter", 13, "\r");
   await page.waitForTimeout(250);
+  assert.equal(await nativeFocus(), "scan");
   const nativeScanned = await nativeEval(
     '({width:innerWidth,height:innerHeight,cards:document.querySelectorAll("article").length,findings:document.querySelector("#findings").getBoundingClientRect().toJSON()})',
   );
@@ -183,6 +224,27 @@ try {
   );
   assert(nativeScroll > 0);
   await nativeEval('document.querySelector("#findings").scrollTop=0');
+  for (const id of ["view", "category", "severity", "findings"]) {
+    await nativeKey("Tab", "Tab", 9);
+    assert.equal(await nativeFocus(), id);
+  }
+  assert.equal(
+    await nativeEval("getComputedStyle(document.activeElement).outlineOffset"),
+    "-2px",
+  );
+  const { nodes } = await nativeSend("Accessibility.getFullAXTree");
+  assert(
+    nodes.some(
+      (n) => n.role.value === "region" && n.name?.value === "Contact findings",
+    ),
+  );
+  assert(
+    nodes.some(
+      (n) =>
+        n.role.value === "button" &&
+        n.name?.value.startsWith("Copy both sections"),
+    ),
+  );
   assert.equal(nativeScanned.cards, contactCount);
   await nativeEval(
     '(()=>{const view=document.querySelector("#view");view.value="general";view.dispatchEvent(new Event("change"));})()',
@@ -283,12 +345,16 @@ try {
   await popup.locator("#view").selectOption("general");
   await popup.locator("#severity").selectOption("error");
   assert.equal(await popup.locator("article").count(), 0);
-  await popup.locator("#copy-safe").click();
+  await popup.locator("#copy-safe").press("Enter");
   await popup.waitForFunction(
     () =>
       document.querySelector("#status").textContent === "Safe summary copied.",
   );
   const copiedSafeSummary = await popup.evaluate(() => window.smokeCopiedText);
+  assert.equal(
+    await popup.evaluate(() => document.activeElement.id),
+    "copy-safe",
+  );
   assert.match(copiedSafeSummary, /Elements inspected — 19\./);
   assert.match(
     copiedSafeSummary,
@@ -313,10 +379,16 @@ try {
       },
     });
   });
-  await popup.locator("#copy-json").click();
+  await popup.locator("#copy-json").press("Space");
   await popup.locator("#fallback").waitFor({ state: "visible" });
   assert.equal(await popup.locator("#report").inputValue(), copiedJson);
+  assert((await fieldBorderContrast(popup.locator("#report"))) >= 3);
+  assert((await fieldBorderContrast(popup.locator("#category"))) >= 3);
   assert.equal(await popup.evaluate(() => document.activeElement.id), "report");
+  assert.match(
+    await popup.locator("#status").textContent(),
+    /Clipboard unavailable/,
+  );
   assert.equal(
     await popup.locator("#report").evaluate((el) => el.selectionEnd),
     copiedJson.length,
@@ -459,6 +531,69 @@ try {
   );
   assert.equal(await popup.locator("#inspected").textContent(), "0");
   await popup.screenshot({ path: "docs/screenshots/popup-no-findings.png" });
+
+  // An action popup inherits Chrome's default Page zoom when it opens.
+  const settings = await context.newPage();
+  await settings.goto("chrome://settings/appearance");
+  const defaultZoom = await settings.evaluate(async () => {
+    chrome.settingsPrivate.setDefaultZoom(2);
+    return new Promise((resolve) =>
+      chrome.settingsPrivate.getDefaultZoom(resolve),
+    );
+  });
+  assert.equal(defaultZoom, 2);
+  await settings.close();
+  await page.goto(fixture);
+  await openNativePopup();
+  assert.equal(await nativeZoomRatio(), nativeDefaultDpr * 2);
+  await nativeKey("Tab", "Tab", 9);
+  assert.equal(await nativeFocus(), "scan");
+  await nativeKey(" ", "Space", 32, " ");
+  await page.waitForTimeout(300);
+  assert.equal(await nativeFocus(), "scan");
+  const nativeZoom = await nativeEval(`({
+    width: innerWidth,
+    height: innerHeight,
+    scrollable: document.querySelector("#app").scrollHeight > document.querySelector("#app").clientHeight,
+    appBottom: document.querySelector("#app").getBoundingClientRect().bottom,
+    findingsHeight: document.querySelector("#findings").clientHeight,
+    cards: document.querySelectorAll("article").length,
+    overflow: [...document.querySelectorAll("h1, code, select, .report-bar button")]
+      .some(el => el.scrollWidth > el.clientWidth + 1)
+  })`);
+  assert.equal(nativeZoom.cards, contactCount);
+  assert.equal(nativeZoom.overflow, false);
+  assert(nativeZoom.findingsHeight >= 100);
+  assert(
+    nativeZoom.scrollable && nativeZoom.appBottom <= nativeZoom.height + 1,
+  );
+  for (const control of [
+    "view",
+    "category",
+    "severity",
+    "findings",
+    ...Array(contactCount).fill("locate"),
+    "copy-safe",
+    "copy",
+    "copy-json",
+    "SUMMARY",
+  ]) {
+    await nativeKey("Tab", "Tab", 9);
+    const focus = await nativeEval(`(() => {
+      const el = document.activeElement;
+      const { top, bottom, left, right } = el.getBoundingClientRect();
+      return {
+        control: el.id || el.className || el.tagName,
+        visible: bottom > 0 && top < innerHeight && left >= 0 && right <= innerWidth
+      };
+    })()`);
+    assert.deepEqual(focus, { control, visible: true });
+  }
+  await nativeKey(" ", "Space", 32, " ");
+  assert(await nativeEval('document.querySelector("footer details").open'));
+  await nativeKey("Tab", "Tab", 9, undefined, 8); // Shift+Tab
+  assert.equal(await nativeFocus(), "copy-json");
+
   const output = {
     chrome: version.product,
     extensionVersion: JSON.parse(await readFile("dist/manifest.json", "utf8"))
@@ -471,6 +606,7 @@ try {
       nativeInitial,
       nativeScanned,
       nativeLayout,
+      nativeZoom,
       narrow,
       zoomLayout,
       zoomFooter,
@@ -499,6 +635,9 @@ try {
       "popup cards and filtering",
       "real highlight injection and cleanup without changing fixture content",
       "native action popup dimensions, one-line title and visible report/footer",
+      "native action popup keyboard activation, retained focus and accessible names",
+      "native action popup at 200% default zoom with findings and all controls reachable by keyboard",
+      "filter and clipboard fallback field boundary contrast",
       "keyboard focus order and findings scrolling",
       "320px viewport and long-URL overflow",
       "real Chrome 200% tab zoom",
@@ -508,7 +647,6 @@ try {
     unverified: [
       "manual toolbar popup interaction",
       "manual screen-reader and keyboard usability",
-      "native-popup zoom (200% tested in extension tab only)",
       "Chrome Web Store review",
       "other OS/Node CI jobs",
     ],

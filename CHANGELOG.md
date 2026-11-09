@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 — 2026-11-09 (prepared locally)
+
+- Keep keyboard focus on Scan and Re-scan through loading, completion and errors. Announce filter counts in the existing status region.
+- Match the text export button's accessible name to its visible label and name the findings region for the active view.
+- Improve filter and clipboard fallback borders, keep the findings focus indicator visible, and let short or zoomed native popups scroll without squeezing the results.
+- Include the existing accessible-name warnings and privacy-safe summary in the packaged release candidate.
+
 ## 1.1.0 — 2026-10-18 (prepared locally)
 
 - Default contact-first findings with a separate general-observations view; ordinary navigation placeholders no longer inflate contact warning counts.

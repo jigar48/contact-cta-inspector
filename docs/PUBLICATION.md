@@ -1,5 +1,7 @@
 # Public GitHub publication preparation
 
+The publication plan below is a historical record for v1.1.0. For the current candidate and open release checks, see [v1.2.0 accessibility acceptance](VERIFICATION.md#v120-accessibility-acceptance).
+
 Prepared target: `jigar48/contact-cta-inspector`. Description: **Privacy-first Chrome extension that separates contact CTA format findings from general link observations, with offline checks, actionable fixes and redacted reports.**
 
 Topics: `chrome-extension`, `manifest-v3`, `typescript`, `developer-tools`, `quality-assurance`, `accessibility`, `whatsapp`, `mailto`, `privacy`, `offline`.

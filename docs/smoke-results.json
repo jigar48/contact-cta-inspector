@@ -1,6 +1,6 @@
 {
   "chrome": "Chrome/157.0.8103.38",
-  "extensionVersion": "1.1.0",
+  "extensionVersion": "1.2.0",
   "fixtureElements": 19,
   "findingGroups": 13,
   "contactGroups": 10,
@@ -32,6 +32,15 @@
       "footer": 510,
       "app": 510,
       "button": 30
+    },
+    "nativeZoom": {
+      "width": 400,
+      "height": 255,
+      "scrollable": true,
+      "appBottom": 255,
+      "findingsHeight": 220,
+      "cards": 10,
+      "overflow": false
     },
     "narrow": {
       "app": 320,
@@ -71,6 +80,9 @@
     "popup cards and filtering",
     "real highlight injection and cleanup without changing fixture content",
     "native action popup dimensions, one-line title and visible report/footer",
+    "native action popup keyboard activation, retained focus and accessible names",
+    "native action popup at 200% default zoom with findings and all controls reachable by keyboard",
+    "filter and clipboard fallback field boundary contrast",
     "keyboard focus order and findings scrolling",
     "320px viewport and long-URL overflow",
     "real Chrome 200% tab zoom",
@@ -80,7 +92,6 @@
   "unverified": [
     "manual toolbar popup interaction",
     "manual screen-reader and keyboard usability",
-    "native-popup zoom (200% tested in extension tab only)",
     "Chrome Web Store review",
     "other OS/Node CI jobs"
   ]

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Contact CTA Inspector",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Inspect contact links on demand. Find invalid formats and suspicious placeholders without sending page data anywhere.",
   "permissions": ["activeTab", "scripting"],
   "icons": {

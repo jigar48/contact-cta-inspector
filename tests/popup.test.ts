@@ -56,7 +56,7 @@ it("provides a compact initial state and labelled native controls", async () => 
     "0",
   );
 });
-it("shows loading feedback and prevents duplicate scans", async () => {
+it("keeps focus on Scan while announcing progress and preventing duplicate scans", async () => {
   const execute = await mount();
   let release: (value: unknown) => void = () => {};
   execute.mockImplementation(
@@ -65,16 +65,17 @@ it("shows loading feedback and prevents duplicate scans", async () => {
         release = resolve;
       }),
   );
-  document.getElementById("scan")!.click();
+  const scan = document.getElementById("scan")!;
+  scan.focus();
+  scan.click();
   await vi.waitFor(() => expect(execute).toHaveBeenCalled());
-  expect((document.getElementById("scan") as HTMLButtonElement).disabled).toBe(
-    true,
-  );
+  expect(scan.getAttribute("aria-disabled")).toBe("true");
+  expect(document.activeElement).toBe(scan);
   expect(document.getElementById("app")?.dataset.state).toBe("scanning");
   expect(document.getElementById("results")?.getAttribute("aria-busy")).toBe(
     "true",
   );
-  document.getElementById("scan")!.click();
+  scan.click();
   expect(execute).toHaveBeenCalledTimes(1);
   release([
     {
@@ -90,6 +91,25 @@ it("shows loading feedback and prevents duplicate scans", async () => {
   ]);
   await vi.waitFor(() =>
     expect(document.getElementById("app")?.dataset.state).toBe("empty"),
+  );
+  expect(scan.hasAttribute("aria-disabled")).toBe(false);
+  expect(document.activeElement).toBe(scan);
+});
+it("announces the filtered result count without moving focus or duplicating live regions", async () => {
+  await mount([finding]);
+  document.getElementById("scan")!.click();
+  const status = document.getElementById("status")!;
+  await vi.waitFor(() => expect(status.textContent).toMatch(/Scan complete/));
+  const severity = document.querySelector<HTMLSelectElement>("#severity")!;
+  severity.focus();
+  severity.value = "warning";
+  severity.dispatchEvent(new Event("change"));
+  expect(document.activeElement).toBe(severity);
+  expect(
+    document.querySelectorAll('[role="status"], [aria-live]'),
+  ).toHaveLength(1);
+  expect(status.textContent).toBe(
+    "Contact findings · Showing 0 of 1 group · 0 elements.",
   );
 });
 it("keeps summary counts independent of filters and exposes grouped elements", async () => {
@@ -220,7 +240,7 @@ it("waits for click, safely renders, filters, copies and reports failures", asyn
       "could not access",
     ),
   );
-  expect((document.getElementById("scan") as HTMLButtonElement).disabled).toBe(
+  expect(document.getElementById("scan")!.hasAttribute("aria-disabled")).toBe(
     false,
   );
 });

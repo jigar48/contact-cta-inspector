@@ -1,14 +1,14 @@
 # Contact CTA Inspector
 
-Inspect contact-link formats and contact-labelled controls without confusing ordinary navigation placeholders with contact problems. A small, deterministic, offline Chrome Manifest V3 extension by **Jigar Prajapati**. MIT licensed. Prepared version: **1.1.0**.
+Inspect contact-link formats and contact-labelled controls without confusing ordinary navigation placeholders with contact problems. A small, deterministic, offline Chrome Manifest V3 extension by **Jigar Prajapati**. MIT licensed. Prepared version: **1.2.0**.
 
 ## Install
 
-For this local build, extract `release/contact-cta-inspector-1.1.0.zip` to a folder. For a source checkout, first run `npm ci` and `npm run build` to generate that ZIP and `dist`. Build outputs are intentionally not committed. Open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the extracted folder or `dist`. Pin the extension. Open a regular website, open the popup and click **Scan page**. ZIP files cannot be loaded directly. Local HTML files require “Allow access to file URLs” in extension details. Reload the extension after rebuilding. GitHub publication/release assets are not created by local build commands.
+For this local build, extract `release/contact-cta-inspector-1.2.0.zip` to a folder. For a source checkout, first run `npm ci` and `npm run build` to generate that ZIP and `dist`. Build outputs are intentionally not committed. Open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the extracted folder or `dist`. Pin the extension. Open a regular website, open the popup and click **Scan page**. ZIP files cannot be loaded directly. Local HTML files require “Allow access to file URLs” in extension details. Reload the extension after rebuilding. GitHub publication/release assets are not created by local build commands.
 
 ## Use
 
-The popup uses a compact 416px document width, a one-line title and a 30px Scan/Re-scan button. After scanning, inspected/error/warning/info counts and filters stay above the main findings scroller. Copy actions and Scope & privacy stay below it. At narrow widths filters stack and copy actions wrap as needed. At 200% zoom the popup can also scroll as a whole to keep every control reachable.
+The popup uses a compact 416px document width, a one-line title and a 30px Scan/Re-scan button. After scanning, inspected/error/warning/info counts and filters stay above the main findings scroller. Copy actions and Scope & privacy stay below it. At narrow widths filters stack and copy actions wrap as needed. When Chrome gives the native popup less vertical space, the whole popup can scroll as well as the findings list. The popup inherits the profile-wide Page zoom set in Chrome Appearance settings.
 
 - **Contact findings** is the default view: WhatsApp, telephone and email destinations, plus placeholders or scripted controls with a clear contact signal.
 - **General observations** is an opt-in View option for ordinary navigation placeholders, JavaScript links and missing destinations with no clear contact intent. These do not inflate contact severity counts and are not confirmed broken.
@@ -63,7 +63,7 @@ GitHub Actions runs the full check, package inspection, source review and npm au
 
 [General observations view](docs/screenshots/popup-native-general.png) · [Navigation-only acceptance scenario](docs/screenshots/popup-navigation-noise.png) · [Copy actions at 200% extension-tab zoom](docs/screenshots/popup-zoom-200-copy.png)
 
-Actual automated Chrome captures are in `docs/screenshots`: `popup-native-initial.png` and `popup-native-results.png` show the native action popup; `popup-empty.png`, `popup-results.png`, `popup-error.png` and `popup-no-findings.png` show the extension document states; `popup-narrow.png` tests 320px and long URLs; `popup-zoom-200.png` tests real Chrome 200% tab zoom. Store screenshots still need store-appropriate sizing. To reproduce: build and run `npm run smoke` with installed Chrome (`CHROME_PATH` can override the executable path). Use synthetic pages only. See `docs/VERIFICATION.md` for measurements and remaining release checks.
+Reference captures from the 1.1.0 automated Chrome run are in `docs/screenshots`: `popup-native-initial.png` and `popup-native-results.png` show the native action popup; `popup-empty.png`, `popup-results.png`, `popup-error.png` and `popup-no-findings.png` show the extension document states; `popup-narrow.png` tests 320px and long URLs; `popup-zoom-200.png` tests real Chrome 200% tab zoom. Store screenshots still need store-appropriate sizing. To reproduce: build and run `npm run smoke` with installed Chrome (`CHROME_PATH` can override the executable path). Use synthetic pages only. See [accessibility acceptance](docs/VERIFICATION.md#v120-accessibility-acceptance) for the v1.2.0 native-popup keyboard and 200% default-zoom results, and the remaining manual screen-reader checks.
 
 ## Hire Me
 

@@ -95,7 +95,7 @@ button {
 button:hover {
   background: #f1f5f6;
 }
-button:disabled {
+button[aria-disabled="true"] {
   opacity: 0.65;
   cursor: wait;
 }
@@ -198,7 +198,7 @@ select {
   min-width: 0;
   width: 100%;
   height: 29px;
-  border: 1px solid #cbd5db;
+  border: 1px solid #7b8b96;
   border-radius: 5px;
   background: #fff;
   color: #293e4a;
@@ -235,6 +235,9 @@ select {
   padding: 0 12px 8px;
   scrollbar-gutter: stable;
   flex: 1;
+}
+#findings:focus-visible {
+  outline-offset: -2px;
 }
 .card {
   min-width: 0;
@@ -401,7 +404,7 @@ textarea {
   width: 100%;
   height: 85px;
   resize: vertical;
-  border: 1px solid #cbd5db;
+  border: 1px solid #7b8b96;
   border-radius: 4px;
   font-size: 11px;
   padding: 6px;
@@ -436,7 +439,19 @@ textarea {
     display: none;
   }
 }
-@media (max-width: 250px) {
+/* Chrome starts its native popup measurement at a tiny viewport. Keep the
+   intrinsic width for that pass and fit the actual viewport once it is sized. */
+@media (100px <= width < 416px) {
+  :root {
+    width: auto;
+  }
+}
+@media (200px <= height <= 440px) {
+  :root {
+    overflow: hidden;
+  }
+}
+@media (max-width: 250px), (max-height: 440px) {
   #app {
     overflow-y: auto;
   }

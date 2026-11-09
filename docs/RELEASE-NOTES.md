@@ -1,17 +1,10 @@
-# Contact CTA Inspector 1.1.0 — release notes draft
+# Contact CTA Inspector 1.2.0 release candidate
 
-Contact inspection now starts with customer contact findings, while ordinary navigation placeholders live in a separate general-observations view. A page with many menu placeholders no longer looks like it has many contact CTA failures.
+- Scan and Re-scan keep their keyboard focus during work, after completion and after a scan error. Filter changes report the number of results through the popup status.
+- The text export’s accessible name includes “Copy both sections”. The findings landmark follows the selected view. Filter and fallback field boundaries and the findings focus outline are easier to see.
+- The compact native popup lets the whole view scroll when Chrome gives it less vertical space, including at 200% default Page zoom.
+- This candidate includes the existing conservative missing accessible-name warnings and Copy safe summary. The safe summary uses counts and fixed category descriptions. The detailed text and JSON exports can still include contact addresses and paths.
 
-- Direct WhatsApp, tel and mailto destinations remain contact signals; bounded, explainable contact labels and nearby contact-group context identify scripted/placeholder controls.
-- General observations remain available for manual review. Neither placeholders nor JavaScript controls are automatically declared broken.
-- Duplicate groups and affected-element totals are shown per view. Severity counts are groups in the selected view; category/severity filters affect displayed cards. Reports include both counted sections regardless of filters.
-- The compact 416px popup, redacted reports, keyboard controls and temporary highlight remain intact.
-- Credential redaction handles long and malformed multi-@ userinfo before clipping. No new permissions, dependencies, storage or network operations were added.
+Extract `contact-cta-inspector-1.2.0.zip` and select the extracted folder in Chrome’s **Load unpacked** dialog. For a source checkout, run `npm ci` and `npm run build`, then load `dist`.
 
-Install the prepared `contact-cta-inspector-1.1.0.zip` by extracting it and selecting the folder in Chrome's Load unpacked dialog. Source checkouts use `npm ci` then `npm run build`. Reload an existing unpacked installation after replacing its files.
-
-Classification is heuristic and primarily English-language. Formats do not prove a working number, inbox, account or event handler. All frames and shadow roots remain excluded; work limits can truncate findings. Reports retain contact addresses and path content; review before sharing.
-
-See VERIFICATION.md for executed checks and remaining unverified manual accessibility/native-popup zoom and cross-platform CI checks. This draft is prepared locally; no release has been published.
-
-Maintainer: **Jigar Prajapati** · [GitHub](https://github.com/jigar48) · [LinkedIn](https://www.linkedin.com/in/buildaiwith-jigar-prajapati/).
+The candidate passed the automated checks against the real unpacked extension. Manual screen-reader acceptance is still open. See the [verification matrix and reproduction steps](VERIFICATION.md#v120-accessibility-acceptance).
